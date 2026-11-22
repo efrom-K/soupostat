@@ -14,12 +14,12 @@
 
 ## Играть
 
-| Устройство | Что скачать из [релиза 3.0](https://github.com/efrom-K/soupostat/releases/tag/v3.0.0) | Как запустить |
+| Устройство | Что скачать из [релиза 3.0.1](https://github.com/efrom-K/soupostat/releases/tag/v3.0.1) | Как запустить |
 | --- | --- | --- |
-| Mac с Apple Silicon | [Soupostat-macOS-arm64.zip](https://github.com/efrom-K/soupostat/releases/download/v3.0.0/Soupostat-macOS-arm64.zip) | Распаковать и открыть «Супостат.app». macOS 13+, локальная подпись |
-| Windows x64 | [Soupostat-Windows-x64.zip](https://github.com/efrom-K/soupostat/releases/download/v3.0.0/Soupostat-Windows-x64.zip) | Распаковать всю папку и открыть `Soupostat.exe`. Использует Edge или системный браузер |
-| Android | [Soupostat-android.apk](https://github.com/efrom-K/soupostat/releases/download/v3.0.0/Soupostat-android.apk) | Установить APK с локальной отладочной подписью. Для интерфейса нужен современный Android System WebView |
-| Браузер и iOS | [Soupostat-web.zip](https://github.com/efrom-K/soupostat/releases/download/v3.0.0/Soupostat-web.zip) | На компьютере открыть `index.html`. Для Safari на телефоне разместить содержимое на статическом HTTPS-сервере |
+| Mac с Apple Silicon | [Soupostat-macOS-arm64.zip](https://github.com/efrom-K/soupostat/releases/download/v3.0.1/Soupostat-macOS-arm64.zip) | Распаковать и открыть «Супостат.app». macOS 13+, локальная подпись |
+| Windows x64 | [Soupostat-Windows-x64.zip](https://github.com/efrom-K/soupostat/releases/download/v3.0.1/Soupostat-Windows-x64.zip) | Распаковать всю папку и открыть `Soupostat.exe`. Использует Edge или системный браузер |
+| Android | [Soupostat-android.apk](https://github.com/efrom-K/soupostat/releases/download/v3.0.1/Soupostat-android.apk) | Установить APK с локальной отладочной подписью. Для интерфейса нужен современный Android System WebView |
+| Браузер и iOS | [Soupostat-web.zip](https://github.com/efrom-K/soupostat/releases/download/v3.0.1/Soupostat-web.zip) | На компьютере открыть `index.html`. Для Safari на телефоне разместить содержимое на статическом HTTPS-сервере |
 
 Внутри сборок уже есть графика, шрифты и музыка. Партия сохраняется на устройстве. При обновлении клиент переносит прежнюю колонию и оставляет исходное сохранение. У каждой платформы отдельный прогресс.
 
@@ -30,7 +30,7 @@
 3. **Отправьте разведчиков.** Чертежи нужны для строительства. По дороге можно соединить маршрут из плиток. В караване вы подбираете груз по весу, на посту дозорных повторяете позывной. Заберите груз по возвращении.
 4. **Следите за человеком.** Муть и зелёный пигмент повышают подозрение. Покой помогает пережить осмотр. При обнаружении на 100% суп отправится в унитаз.
 
-Под холодильником можно **спросить жителя**. Лада поможет с разведкой и картами, Мира — с едой и запасом энергии, Тим предупредит об осмотре. У каждого своё полевое задание и письма в дневнике.
+Жители сами появляются у края экрана. Вибрион Лада замечает новые берега, кокк Мира пересчитывает запасы, а бактериофаг Тим предупреждает об осмотре. Реплика исчезает сама, пока идут часы. При включённом звуке реплики в игре озвучиваются, если браузеру доступен локальный русский голос.
 
 ## Что меняется за кампанию
 

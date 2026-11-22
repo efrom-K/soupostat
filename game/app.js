@@ -108,6 +108,7 @@ function showSound() {
   $('sound').setAttribute('aria-label', soundOn ? 'Отключить звук' : 'Включить звук');
 }
 function stop(message) {
+  endVisit();
   if (running) {
     running = false;
     lastFrame = 0;
@@ -178,7 +179,10 @@ function ending() {
   $('new-game').onclick = newGame;
 }
 function newGame() {
-  $('crew-picker').value = '';
+  endVisit();
+  heard.clear();
+  idleIndex = 0;
+  nextVisitAt = 0;
   state = rules.initial();
   running = false;
   elapsed = 0;
@@ -574,30 +578,51 @@ function field() {
     },
   );
 }
-function renderGuide() {
-  const tip = SoupGuides.advice(state, $('crew-picker').value);
-  const quote = $('crew-quote');
-  if (quote.dataset.words !== tip.words || quote.dataset.who !== tip.who) {
-    quote.innerHTML = SoupGuides.speech(tip.who, tip.words);
-    quote.dataset.words = tip.words;
-    quote.dataset.who = tip.who;
-  }
-  $('crew-follow').textContent = tip.label;
-  $('crew-follow').dataset.target = tip.screen;
+const heard = new Set();
+let nextVisitAt = 0, idleIndex = 0, visitEndTimer, speaking = false;
+function silenceGuide() {
+  if (speaking) window.speechSynthesis?.cancel();
+  speaking = false;
 }
-$('crew-picker').onchange = renderGuide;
-$('crew-follow').onclick = () => {
-  const dest = $('crew-follow').dataset.target;
-  if (dest === 'clock') {
-    $('run-toggle').click();
-  } else if (dest === 'modes' || dest === 'rest') {
-    const control = document.querySelector('[data-mode="' + (dest === 'rest' ? 'rest' : state.mode) + '"]');
-    if (control) {
-      control.scrollIntoView({ block: 'center' });
-      control.focus({ preventScroll: true });
+function endVisit() {
+  clearTimeout(visitEndTimer);
+  $('crew-visit').replaceChildren();
+  silenceGuide();
+}
+function renderGuide() {
+  if (document.hidden || state.status !== 'playing' || document.querySelector('dialog[open]')) return;
+  if (!running && (state.city.intro || state.seconds)) return;
+  const now = performance.now();
+  if (state.suspicion < 50) heard.delete('alarm');
+  if (state.food > 12) heard.delete('hungry');
+  const urgent = state.suspicion >= 65 && !heard.has('alarm');
+  if (!urgent && now < nextVisitAt) return;
+  const idle = running && now >= nextVisitAt + 24000;
+  const tip = SoupGuides.nextVisit(state, heard, idle ? idleIndex : -1);
+  if (!tip) return;
+  endVisit();
+  const dwell = Math.max(6500, Math.min(13000, tip.words.length * 84));
+  const box = $('crew-visit');
+  box.innerHTML = SoupGuides.speech(tip.who, tip.words);
+  box.style.setProperty('--visit-length', dwell + 'ms');
+  if (tip.key === 'idle') idleIndex++;
+  else heard.add(tip.key);
+  nextVisitAt = now + dwell + 4500;
+  visitEndTimer = setTimeout(endVisit, dwell);
+  const synth = window.speechSynthesis;
+  if (running && soundOn && synth && window.SpeechSynthesisUtterance) {
+    const voice = synth.getVoices().find((v) => v.localService && /^ru(?:-|_|$)/i.test(v.lang));
+    if (voice) {
+      const phrase = new SpeechSynthesisUtterance(tip.words);
+      phrase.voice = voice;
+      phrase.lang = voice.lang;
+      phrase.rate = 1.05;
+      phrase.pitch = { lada: 1.12, mira: .93, tim: 1.02 }[tip.who];
+      speaking = true;
+      synth.speak(phrase);
     }
-  } else screen(dest);
-};
+  }
+}
 function screen(id) {
   stop();
   render();
@@ -693,6 +718,7 @@ $('dialog').addEventListener('close', () => {
 });
 $('sound').onclick = () => {
   soundOn = !soundOn;
+  if (!soundOn) silenceGuide();
   try {
     localStorage.setItem('soupostat.sound', soundOn ? 'on' : 'off');
   } catch {}

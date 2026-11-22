@@ -191,22 +191,30 @@ console.log(
   const fs = require('node:fs');
   const context = vm.createContext({ SoupCity: require('../game/campaign') });
   vm.runInContext(fs.readFileSync(require.resolve('../game/guides'), 'utf8'), context);
-  const { advice, routeCrew, crew } = context.SoupGuides;
+  const { nextVisit, routeCrew, crew } = context.SoupGuides;
   const s = start();
-  assert.equal(advice(s).screen, 'clock');
+  const heard = new Set();
+  assert.equal(nextVisit(s, heard).key, 'welcome');
+  heard.add('welcome');
+  assert.equal(nextVisit(s, heard), null);
   s.city.intro = true;
-  s.city.chapterRead = 0;
   s.food = 3;
-  assert.equal(advice(s).who, 'mira');
+  assert.equal(nextVisit(s, heard).who, 'mira');
   s.suspicion = 70;
-  assert.equal(advice(s).screen, 'rest');
-  assert.equal(advice(s, 'lada').who, 'lada');
+  assert.equal(nextVisit(s, heard).key, 'alarm');
   s.suspicion = 0;
   for (const [route, who] of Object.entries(routeCrew)) {
     s.city.voyage = { id: route, until: s.seconds };
-    assert.equal(advice(s).who, who);
-    assert.equal(advice(s).screen, 'routes');
+    assert.equal(nextVisit(s, heard).who, who);
   }
+  s.city.voyage = null;
+  s.food = 24;
+  s.seconds = 26;
+  heard.add('reserve');
+  assert.equal(nextVisit(s, heard).who, 'tim');
+  heard.add('night');
+  assert.equal(nextVisit(s, heard), null);
+  assert.equal(nextVisit(s, heard, 0).key, 'idle');
   for (const ch of context.SoupCity.chapters) assert.ok(crew[ch.who] && ch.testimony);
-  console.log('PASS: three guides, expedition returns, risk priority and chapter witnesses.');
+  console.log('PASS: automatic guide visits, risk priority, quiet intervals and chapter witnesses.');
 }

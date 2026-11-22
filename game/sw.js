@@ -1,5 +1,5 @@
 const cachePrefix = 'soupostat:' + self.registration.scope + ':';
-const cacheName = cachePrefix + '3.0.0-crew';
+const cacheName = cachePrefix + '3.0.1';
 const files = [
   'index.html',
   'icons.js',

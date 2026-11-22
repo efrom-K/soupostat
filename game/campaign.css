@@ -374,12 +374,26 @@
   }
 }
 
-.crew-desk {
-  background: #f7ecd4;
-  color: #473b2c;
-  border-bottom: 1px solid #bda482;
-  padding: 8px 14px 10px;
+.crew-visit {
+  position: fixed;
+  z-index: 8;
+  pointer-events: none;
+  left: max(16px, env(safe-area-inset-left));
+  bottom: max(18px, env(safe-area-inset-bottom));
+  width: min(430px, calc(100% - 32px));
 }
+.crew-visit .crew-speech {
+  grid-template-columns: 76px minmax(0, 1fr);
+  border: 2px solid #65563d;
+  border-radius: 32px 22px 22px 9px;
+  padding: 8px 14px 8px 4px;
+  background: #fff3d7;
+  box-shadow: 2px 4px 0 #40372b32;
+  animation: crew-arrive .35s ease-out both, crew-leave .28s ease-in calc(var(--visit-length) - .28s) forwards;
+}
+@keyframes crew-arrive { from { opacity: 0; transform: translate(-20px, 8px); } }
+@keyframes crew-leave { to { opacity: 0; transform: translateY(10px); } }
+@media (prefers-reduced-motion: reduce) { .crew-visit .crew-speech { animation: none; } }
 .crew-speech {
   display: grid;
   grid-template-columns: 66px minmax(0, 1fr);
@@ -391,34 +405,12 @@
 .crew-speech strong { font: 22px/1.1 Neucha, cursive; }
 .crew-speech small { font-size: 12px; color: #6b533b; }
 .crew-speech p { margin: 3px 0 0; font-size: 14px; line-height: 1.4; }
-.crew-tools {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px 12px;
-  margin: 4px 0 0 76px;
-}
-.crew-tools label { font-size: 12px; }
-.crew-tools select, .crew-tools button {
-  color: #694421;
-  font: inherit;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-  min-height: 36px;
-}
-.crew-tools select { text-decoration: underline; }
-.crew-tools button { font-weight: 750; font-size: 13px; padding: 2px 0; }
-.crew-tools button::after { content: ' →'; }
 .hq-diary .crew-speech, #dialog-body .crew-speech, .field-game-dialog .crew-speech {
   margin: 10px 0;
   padding: 8px 0;
   border-block: 1px solid #c5b597;
 }
 @media (max-width: 760px) {
-  .crew-desk { padding: 6px 10px 2px; }
-  .crew-speech { grid-template-columns: 56px minmax(0, 1fr); gap: 8px; }
-  .crew-tools { margin: 0; }
-  .crew-tools select, .crew-tools button { min-height: 44px; }
+  .crew-visit { left: 8px; width: min(400px, calc(100% - 16px)); bottom: calc(72px + env(safe-area-inset-bottom)); }
+  .crew-speech, .crew-visit .crew-speech { grid-template-columns: 60px minmax(0, 1fr); gap: 6px; }
 }

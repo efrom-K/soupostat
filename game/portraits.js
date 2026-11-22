@@ -1,74 +1,31 @@
-// Small layered SVG puppets in the game's ink-and-enamel style.
-window.SoupPortrait = function SoupPortrait(id) {
-  const art = {
-    lada: `<g class="sp-lada">
-      <path class="sp-ink sp-limb" d="M39 94Q25 104 31 121l13 4m24-29q18 6 21 20l-8 8"/>
-      <path class="sp-body sp-amber" d="M40 56Q52 44 69 52q13 7 10 26l-5 30q-13 9-29 0l-7-27q-3-17 2-25Z"/>
-      <path class="sp-hatch" d="m46 83 20 20m-19-9 13 13m-8-28 16 17"/>
-      <path class="sp-ink" d="M47 67q10-9 23 0m-21 5q9-8 18 0"/>
-      <g class="sp-map">
-        <path class="sp-paper" d="m77 107 15-7 13 5 14-7 2 25-15 6-13-5-14 6Z"/>
-        <path class="sp-hatch" d="m79 110 9 12m0-17 11 18m4-14 10 11"/>
-        <path class="sp-ink" d="m92 103 1 23m13-21 1 22m-24-9 6-3 7 2 7-5"/>
-      </g>
-      <path class="sp-scarf" d="M41 60q15-12 33 0l-5 10q-14-8-24 1Z"/>
-      <path class="sp-scarf-tail" d="m46 65-12 8 13 1Z"/>
-      <path class="sp-ink" d="M42 60q14-10 31 0m-27 4 5 2"/>
-      <ellipse class="sp-face" cx="60" cy="48" rx="17" ry="15"/>
-      <path class="sp-ink" d="M48 46q3-3 6 0m10 0q3-3 6 0"/>
-      <path class="sp-blink" d="M48 46h6m10 0h6"/>
-      <circle class="sp-cheek" cx="49" cy="52" r="2"/><circle class="sp-cheek" cx="70" cy="52" r="2"/>
-      <path class="sp-ink" d="M57 54q3 3 6 0"/>
-      <path class="sp-capline" d="M47 41q13-13 25 1"/>
-      <path class="sp-ink" d="M44 99q-7 3-8 8m43-7 7 6"/>
-    </g>`,
-    mira: `<g class="sp-mira">
-      <path class="sp-ink sp-limb" d="M42 95q-16 7-15 19l13 5m39-22q16 5 17 18l-12 5"/>
-      <path class="sp-body sp-terracotta" d="M38 64q4-17 22-18 22 0 25 20l-3 39q-19 13-42 0Z"/>
-      <path class="sp-hatch" d="m46 74 27 26m-28-14 18 19m-9-35 19 23"/>
-      <path class="sp-apron" d="M46 73q14 5 29 0l5 32q-20 9-38 0Z"/>
-      <path class="sp-ink" d="m49 75 4-11q9 5 15 0l5 11m-20 7 13 1m-12 6 13 1"/>
-      <g class="sp-scales">
-        <path class="sp-ink" d="M94 74v35m-10 1h21m-23-24h26"/>
-        <path class="sp-scale-pan" d="M83 84q1 11 10 11t10-11Z"/>
-        <path class="sp-scale-pan" d="M92 84q1 11 10 11t10-11Z"/>
-        <circle class="sp-pea" cx="89" cy="84" r="3"/><circle class="sp-pea sp-pea-two" cx="100" cy="83" r="3"/>
-        <path class="sp-ink" d="M90 111v5m-5 0h10"/>
-      </g>
-      <path class="sp-arm" d="M40 91q-14 4-15-8l7-7 9 9m39 3q10-9 15-20"/>
-      <path class="sp-face" d="M43 45q2-19 19-19 17 0 19 19-1 18-19 19-18-1-19-19Z"/>
-      <path class="sp-ink" d="M49 45q3-3 6 0m13 0q3-3 6 0"/>
-      <path class="sp-blink" d="M49 45h6m13 0h6"/>
-      <circle class="sp-cheek" cx="49" cy="51" r="2"/><circle class="sp-cheek" cx="74" cy="51" r="2"/>
-      <path class="sp-ink" d="M59 54q4 3 8 0M45 35q17-8 33 0"/>
-      <path class="sp-cap" d="M43 34q2-14 18-14 17 0 20 14l-8 4q-12-5-24 0Z"/>
-      <path class="sp-ink" d="M42 35q17-5 41 0m-19-14v7"/>
-    </g>`,
-    tim: `<g class="sp-tim">
-      <path class="sp-ink sp-limb" d="M48 91Q32 98 33 111l11 5m32-25q13 9 7 20l-12 5"/>
-      <path class="sp-body sp-teal" d="M54 48q-20-5-24 12-4 18 14 18 14 0 11-12-2-8-10-5-7 3-3 8 3 3 6 0"/>
-      <path class="sp-hatch" d="m39 61 13 8m-19 0 12 7m-5-20 13 7"/>
-      <path class="sp-body sp-teal sp-tail" d="M66 63q20-7 22 8 2 15-13 14-12-1-8-11 3-6 9-3 5 3 1 6"/>
-      <path class="sp-hatch" d="m73 66 10 7m-13 2 11 7"/>
-      <g class="sp-flags">
-        <path class="sp-ink" d="M50 46V18m31 35V23"/>
-        <path class="sp-flag" d="M51 19q12-6 23 0l-4 12q-9 4-19-1Z"/>
-        <path class="sp-flag sp-flag-two" d="M82 24q11-6 22 0l-5 12q-9 3-17-1Z"/>
-        <path class="sp-ink" d="m55 21 11 8m-9-9-4 8m34-2 10 8m-8-10-5 8"/>
-      </g>
-      <g class="sp-head">
-        <path class="sp-face" d="M44 54q0-17 16-19 17-1 19 16-1 16-18 17-16-1-17-14Z"/>
-        <path class="sp-ink" d="M50 51q3-3 6 0m12 0q3-3 6 0"/>
-        <path class="sp-blink" d="M50 51h6m12 0h6"/>
-        <path class="sp-cheek" d="M48 57q4-3 7 0m17 0q4-3 7 0"/>
-        <path class="sp-ink" d="M59 60q4 3 8 0"/>
-        <path class="sp-cap" d="M43 43q3-16 18-16 16 0 20 15-18-6-38 1Z"/>
-        <path class="sp-ink" d="M43 43q19-7 39-1m-20-14v7"/>
-      </g>
-    </g>`,
-  };
-  const drawing = art[id];
-  return drawing
-    ? `<svg class="soup-portrait soup-portrait-${id}" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">${drawing}</svg>`
-    : '';
-};
+// Cut-paper silhouettes, drawn at the same scale for visits and diary entries.
+(function () {
+  const lada = `<g class="micro-swim">
+    <g class="micro-flagellum" fill="none"><path d="M48 82C30 77 36 99 20 99S8 88 3 95" stroke-width="3"/><path d="M46 85C31 83 33 104 18 103" stroke="#ad8553" stroke-width="1.3"/></g>
+    <path d="M35 78C27 58 47 31 74 25c18-5 35 1 38 15 3 12-7 23-21 24-19 2-26 10-33 19-7 10-20 7-23-5Z" fill="#e7ad4d"/>
+    <path d="M40 74c-3-15 13-37 36-43 15-4 27-1 30 8 2 8-5 16-17 18-18 2-28 10-37 21-5 6-10 6-12-4Z" fill="#f8ce78" stroke="#ac793e" stroke-width="1.3"/>
+    <path d="M52 65c-7-6 4-17 10-13s-2 12-6 8c-5-7 9-21 18-16 8 5-2 11-5 7s9-14 15-11" fill="none" stroke="#93673c" stroke-width="2"/>
+    <g fill="#b57642" stroke="none"><circle cx="89" cy="48" r="3"/><circle cx="96" cy="40" r="2"/><circle cx="49" cy="73" r="1.8"/><circle cx="74" cy="35" r="1.7"/><circle cx="60" cy="66" r="2"/></g>
+    <path d="m43 53 4-6m-1 10 5-7m40-17 5 1" fill="none" stroke="#fff1ac" stroke-width="2.5"/>
+  </g>`;
+  function coccus(x, y, size, tint) {
+    return `<g transform="translate(${x} ${y}) scale(${size})"><path d="M-21-9c5-13 24-16 34-6 12 11 9 26-2 33-13 8-30 2-34-11-2-5-1-11 2-16Z" fill="${tint}"/>
+      <path d="M-17-7c3-6 8-10 15-10" fill="none" stroke="#ffe3ae" stroke-width="3"/>
+      <path d="M-12 4c4-7 9 2 13-4s9-4 10 0" fill="none" stroke="#9c5740" stroke-width="1.6"/>
+      <g fill="#aa5c40" stroke="none"><circle cx="7" cy="9" r="3.1"/><circle cx="13" cy="5" r="1.7"/><circle cx="-7" cy="11" r="2"/></g></g>`;
+  }
+  const mira = `<g class="micro-cluster"><path d="M35 36Q53 18 72 34q23-6 31 16t-2 33q-2 24-26 23-19 8-32-7-23 1-25-19-10-20 6-34Z" fill="#f4d59d" stroke="#c69866" stroke-dasharray="3 3" stroke-width="1.5"/>
+    ${coccus(54, 49, .94, '#d88759')}${coccus(80, 59, .91, '#e9a46f')}
+    ${coccus(43, 75, .97, '#edac78')}${coccus(71, 82, 1, '#de9267')}</g>`;
+  const tim = `<g class="micro-drift"><g transform="rotate(14 64 62)">
+    <g class="micro-fibres" fill="none" stroke="#476b64"><path d="m61 87-20 9-8 16m29-24-9 17 1 12m13-29 18 8 8 16m-27-24 8 17-1 12"/><path d="m63 88-2 17-7 7m11-24 3 15 7 6" stroke-width="1.4"/></g>
+    <path d="M58 55h12l-2 32-4 6-5-6Z" fill="#92b9a8"/><path d="m59 60 10 3m-10 3 10 3m-10 3 9 3m-9 3 9 3" fill="none" stroke="#557e70"/>
+    <path d="m56 84 16 1 3 4-21-1Z" fill="#d6cc87"/>
+    <path d="m63 12 22 10 6 23-17 17-23-2-14-19 5-20Z" fill="#79a993"/>
+    <path d="m63 12 9 18 13-8m-48 19 16-10-11-10m9 39 5-14-19-5m37 21-3-15 20-2" fill="#acc9a5"/>
+    <path d="m53 31 19-1 7 12-8 5-15-1Z" fill="#ccd49e"/><path d="m63 12-10 19m19-1 19 15m-35 1 18 16" fill="none" stroke-width="1.4"/>
+    <path d="m47 26 6-4m-8 9 6-4" fill="none" stroke="#ecedbf" stroke-width="2"/>
+  </g></g>`;
+  const art = { lada, mira, tim };
+  window.SoupPortrait = (id) => art[id] ? `<svg class="soup-portrait soup-portrait-${id}" viewBox="0 0 128 128" aria-hidden="true" focusable="false">${art[id]}</svg>` : '';
+})();

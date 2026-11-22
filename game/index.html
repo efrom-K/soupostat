@@ -88,13 +88,6 @@
               <span class="pulse"></span><span id="territory-caption"></span>
             </div>
           </div>
-          <aside class="crew-desk" aria-label="Жители холодильника">
-            <div id="crew-quote"></div>
-            <div class="crew-tools">
-              <label>Спросить <select id="crew-picker" aria-label="Кого спросить"><option value="">По ситуации</option><option value="lada">Ладу</option><option value="mira">Миру</option><option value="tim">Тима</option></select></label>
-              <button id="crew-follow" type="button"></button>
-            </div>
-          </aside>
           <div class="scene-note">
             <span class="note-icon" data-icon="eye"></span>
             <div><b id="watch-label"></b><span id="watch-note"></span></div>
@@ -183,6 +176,7 @@
         ><button id="restart">Сначала</button>
       </div>
     </main>
+    <aside id="crew-visit" class="crew-visit" aria-live="polite" aria-atomic="true"></aside>
     <dialog id="dialog" aria-labelledby="dialog-title">
       <div class="dialog-head">
         <h2 id="dialog-title"></h2>
