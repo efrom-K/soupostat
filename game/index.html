@@ -4,16 +4,32 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
     <meta name="theme-color" content="#f5ebd5" />
-    <meta name="description" content="Рисованная стратегия в реальном времени о колонии в забытом супе." />
+    <meta
+      name="description"
+      content="Рисованная стратегия в реальном времени о колонии в забытом супе."
+    />
     <link rel="icon" href="assets/icon-192.png" />
     <link rel="apple-touch-icon" href="assets/icon-192.png" />
     <link rel="manifest" href="manifest.webmanifest" />
     <title>Супостат — колония в холодильнике</title>
     <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="evolution.css" />
+    <link rel="stylesheet" href="headquarters.css" />
+    <link rel="stylesheet" href="minigames.css" />
+    <link rel="stylesheet" href="campaign.css" />
+    <link rel="stylesheet" href="portraits.css" />
+    <script defer src="portraits.js"></script>
+    <script defer src="guides.js"></script>
     <script defer src="icons.js"></script>
     <script defer src="traits.js"></script>
+    <script defer src="campaign.js"></script>
     <script defer src="engine.js"></script>
+    <script defer src="town.js"></script>
     <script defer src="scene.js"></script>
+    <script defer src="evolution.js"></script>
+    <script defer src="headquarters.js"></script>
+    <script defer src="minigames.js"></script>
+    <script defer src="audio.js"></script>
     <script defer src="app.js"></script>
   </head>
   <body>
@@ -22,10 +38,15 @@
         <div class="brand"><span data-icon="logo"></span>Супостат<span class="brand-dot">.</span></div>
         <div class="tools">
           <button class="bare" id="guide"><span data-icon="book"></span><span>Как играть</span></button
+          ><button class="bare music" id="music" aria-pressed="true">Музыка</button
           ><button class="sound" id="sound" aria-label="Отключить звук" title="Звук"></button>
         </div>
       </div>
     </header>
+    <div class="mobile-hud" aria-label="Ресурсы и время">
+      <span id="mobile-values"></span><button id="mobile-speed">1×</button
+      ><button id="mobile-run">Старт</button>
+    </div>
     <main>
       <div class="heading">
         <div>
@@ -34,6 +55,19 @@
         </div>
         <button id="map-top" class="map-link"><span data-icon="map"></span>Карта захвата</button>
       </div>
+      <section class="campaign-strip">
+        <div>
+          <small id="chapter-num"></small>
+          <h2 id="chapter-name"></h2>
+          <p id="campaign-status"></p>
+        </div>
+        <nav class="campaign-nav" aria-label="Управление городом">
+          <button data-screen="routes"><span data-icon="map"></span>Экспедиции</button
+          ><button data-screen="works"><span data-icon="rim"></span>Стройки</button
+          ><button data-screen="evolution"><span data-icon="divide"></span>Эволюция</button
+          ><button data-screen="story"><span data-icon="book"></span>Дневник</button>
+        </nav>
+      </section>
       <div class="board">
         <section class="world" aria-label="Холодильник">
           <div id="scene" class="scene">
@@ -43,15 +77,24 @@
               alt="Красная эмалированная кастрюля, банка огурцов и сыр на полке холодильника."
             />
             <canvas id="life" width="900" height="600" aria-hidden="true"></canvas>
+            <div class="ambient" aria-hidden="true"><i></i><i></i><i></i><b></b><b></b></div>
             <div class="shade"></div>
             <div class="scene-top">
               <span class="day-chip"><span data-icon="calendar"></span><b id="day"></b></span
               ><span class="phase-chip" id="phase-chip"></span>
             </div>
+            <button id="visit" class="visit" hidden>Рассмотреть город</button>
             <div class="snapshot-caption">
               <span class="pulse"></span><span id="territory-caption"></span>
             </div>
           </div>
+          <aside class="crew-desk" aria-label="Жители холодильника">
+            <div id="crew-quote"></div>
+            <div class="crew-tools">
+              <label>Спросить <select id="crew-picker" aria-label="Кого спросить"><option value="">По ситуации</option><option value="lada">Ладу</option><option value="mira">Миру</option><option value="tim">Тима</option></select></label>
+              <button id="crew-follow" type="button"></button>
+            </div>
+          </aside>
           <div class="scene-note">
             <span class="note-icon" data-icon="eye"></span>
             <div><b id="watch-label"></b><span id="watch-note"></span></div>
@@ -83,7 +126,12 @@
               <div data-icon="divide"></div>
               <span>Эволюция<strong id="dna"></strong></span>
             </div>
+            <div class="stat">
+              <div data-icon="map"></div>
+              <span>Чертежи<strong id="plans"></strong></span>
+            </div>
           </div>
+          <div class="economy-note" id="economy"></div>
           <div class="time-controls" aria-label="Управление временем">
             <button id="run-toggle" class="primary" aria-pressed="false">Начать</button>
             <div class="speed-controls" role="group" aria-label="Скорость игры">
@@ -108,14 +156,16 @@
             </div>
             <p id="visibility" class="visibility"></p>
           </div>
-          <div class="tabs" role="tablist" aria-label="Панель управления">
-            <button id="tab-moves" role="tab" aria-controls="commands" aria-selected="true">
-              Режим колонии</button
-            ><button id="tab-evo" role="tab" aria-controls="commands" aria-selected="false">
-              Эволюция
-            </button>
+          <div class="budget">
+            <label for="reserve">Запас перед делением</label
+            ><select id="reserve">
+              <option value="0">0 энергии</option>
+              <option value="12">12 энергии</option>
+              <option value="24">24 энергии</option>
+            </select>
           </div>
-          <div id="commands" role="tabpanel" aria-labelledby="tab-moves"></div>
+          <h3 class="mode-heading">Питание колонии</h3>
+          <div id="commands"></div>
         </section>
         <section class="route">
           <div class="route-head">
@@ -126,6 +176,7 @@
           <div class="next" id="next"></div>
         </section>
       </div>
+
       <div class="logline">
         <span data-icon="pencil"></span
         ><output id="feedback" aria-live="polite">Дверца открыта. Колония готова к росту.</output

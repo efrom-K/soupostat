@@ -11,6 +11,7 @@ trap 'rm -rf "$STAGING"' EXIT
 APP="$STAGING/Супостат.app"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources/game"
 cp -R "$ROOT/game/." "$APP/Contents/Resources/game/"
+cp "$ROOT/LICENSE" "$APP/Contents/Resources/LICENSE.txt"
 cp "$ROOT/macos/Info.plist" "$APP/Contents/Info.plist"
 if [[ -f "$ROOT/macos/app.icns" ]]; then
   cp "$ROOT/macos/app.icns" "$APP/Contents/Resources/app.icns"

@@ -1,0 +1,51 @@
+.soup-portrait {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.soup-portrait :is(path, ellipse, circle) {
+  stroke: #555433;
+  stroke-width: 1.45;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.soup-portrait .sp-ink { fill: none; }
+.soup-portrait .sp-face { fill: #f0dfc1; stroke: #555433; stroke-width: 1.5; }
+.soup-portrait .sp-amber { fill: #e6b84f; }
+.soup-portrait .sp-terracotta { fill: #c87855; }
+.soup-portrait .sp-teal { fill: #8fb4aa; }
+.soup-portrait .sp-scarf,
+.soup-portrait .sp-flag { fill: #c76543; }
+.soup-portrait .sp-paper { fill: #f2e4c7; }
+.soup-portrait .sp-apron { fill: #a6ad79; }
+.soup-portrait .sp-cap { fill: #788d70; }
+.soup-portrait .sp-scale-pan { fill: #eec773; }
+.soup-portrait .sp-pea { fill: #93a35f; }
+.soup-portrait .sp-cheek { fill: #d58c70; stroke: none; }
+.soup-portrait .sp-hatch {
+  fill: none;
+  stroke: #795d43;
+  stroke-width: 1;
+  opacity: .58;
+}
+.soup-portrait .sp-limb,
+.soup-portrait .sp-arm { fill: none; stroke-width: 3; }
+.soup-portrait .sp-arm { stroke: #e5b85f; stroke-width: 4; }
+.sp-map { transform-box: fill-box; transform-origin: 50% 50%; animation: sp-unfold 4.8s ease-in-out infinite; }
+.sp-scarf-tail { transform-box: fill-box; transform-origin: 0 50%; animation: sp-sway 3.4s ease-in-out infinite; }
+.sp-scales { transform-box: fill-box; transform-origin: 50% 20%; animation: sp-weigh 3.8s ease-in-out infinite; }
+.sp-pea-two { animation: sp-pea-roll 3.8s ease-in-out infinite; }
+.sp-flags { transform-box: fill-box; transform-origin: 50% 100%; animation: sp-semaphore 4s ease-in-out infinite; }
+.sp-head { transform-box: fill-box; transform-origin: 50% 100%; animation: sp-nod 4.2s ease-in-out infinite; }
+.sp-blink { fill: none; stroke: #555433; stroke-width: 1.7; stroke-linecap: round; animation: sp-blink 5.4s linear infinite; }
+@keyframes sp-unfold { 0%, 18%, 100% { transform: scaleX(.72) rotate(-3deg); } 42%, 78% { transform: scaleX(1) rotate(2deg); } }
+@keyframes sp-sway { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(7deg); } }
+@keyframes sp-weigh { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(5deg); } }
+@keyframes sp-pea-roll { 0%, 15%, 100% { transform: translate(0, 0); } 50%, 75% { transform: translate(4px, 1px); } }
+@keyframes sp-semaphore { 0%, 15%, 100% { transform: rotate(-7deg); } 50%, 75% { transform: rotate(8deg); } }
+@keyframes sp-nod { 0%, 40%, 100% { transform: rotate(0); } 55%, 70% { transform: rotate(3deg); } }
+@keyframes sp-blink { 0%, 44%, 47%, 100% { opacity: 0; } 45%, 46% { opacity: 1; } 72%, 74% { opacity: 1; } 73% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .sp-map, .sp-scarf-tail, .sp-scales, .sp-pea-two, .sp-flags, .sp-head, .sp-blink { animation: none; }
+}

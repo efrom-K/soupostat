@@ -1,19 +1,18 @@
 'use strict';
 const $ = (id) => document.getElementById(id);
 const rules = SoupGame;
-const saveKey = 'soupostat.game.v2';
+const saveKey = 'soupostat.game.v3';
 const legacyKey = 'soupostat.game.v1';
 let state = rules.initial(),
   soundOn = true,
   saveWarning = '',
-  tab = 'moves',
+  musicOn = true,
   audio;
 let running = false,
   speed = 1,
   lastFrame = 0,
   elapsed = 0,
-  lastSave = 0,
-  branchFilter = '';
+  lastSave = 0;
 let renderedEvent = null,
   frameId = 0;
 try {
@@ -22,7 +21,7 @@ try {
     const restored = rules.restore(JSON.parse(raw));
     if (restored) state = restored;
     else saveWarning = 'Сохранение игры не удалось прочитать.';
-  } else if ((raw = localStorage.getItem(legacyKey))) {
+  } else if ((raw = localStorage.getItem('soupostat.game.v2') || localStorage.getItem(legacyKey))) {
     const restored = rules.restore(JSON.parse(raw));
     if (restored) {
       state = restored;
@@ -30,6 +29,7 @@ try {
     } else saveWarning = 'Старое сохранение игры не удалось перенести.';
   }
   soundOn = localStorage.getItem('soupostat.sound') !== 'off';
+  musicOn = localStorage.getItem('soupostat.music') !== 'off';
 } catch {
   saveWarning = 'Сохранение игры не удалось прочитать или записать.';
 }
@@ -67,6 +67,17 @@ function tone(id) {
     audio ||= new (window.AudioContext || window.webkitAudioContext)();
     if (audio.state === 'suspended') audio.resume().catch(() => {});
     const notes = {
+      build: [196, 247, 330],
+      launch: [262, 392],
+      claim: [392, 523, 659],
+      decide: [311, 392],
+      charter: [262, 330, 392, 523],
+      stir: [185, 208, 165],
+      crumbs: [510, 420, 340],
+      lamp: [420, 280],
+      fog: [262, 247],
+      frost: [659, 622, 494],
+      warm: [330, 392, 494],
       eat: [230, 290],
       photo: [470, 690],
       stage: [392, 494, 587],
@@ -101,6 +112,7 @@ function stop(message) {
     running = false;
     lastFrame = 0;
     cancelAnimationFrame(frameId);
+    music();
   }
   save();
   if (message) tell(message);
@@ -114,11 +126,12 @@ function showDialog(title, body) {
 }
 function guide() {
   showDialog(
-    'Как играть',
-    '<p>Колония живёт в реальном времени: один игровой день длится 24 секунды — 10 секунд света и 14 секунд темноты.</p><h3>Выберите стратегию</h3><p>Авто собирает свет днём и ест ночью. Режимы еды и света повторяют выбранное действие, а покой осветляет бульон и снижает обнаружение; рост в покое остановлен.</p><h3>Растите и эволюционируйте</h3><p>Колония добывает ресурсы, делится и получает очки эволюции сама. Откройте карточку таланта, чтобы прочитать эффект и условия. Банка открывается при 24 колониях и приносит 32 органики. Гетеротрофы развивают питание органикой, фототрофы — сбор света. Общие признаки меняют рост популяции. При 100% обнаружения суп смоют.</p><p>Партия сохраняется автоматически. Скорость и паузу можно менять в любой момент.</p>',
+    'Как устроен город',
+    '<p>Постройте столицу и примите устав. Численность открывает соседние продукты, а двенадцать построек превращают полку в город.</p><h3>Куда уходит энергия</h3><p>Каждые 12 секунд город оплачивает содержание. Деление стоит от 6 энергии. Выберите запас, который останется после деления. Энергия также оплачивает каждый рейс, стройку и исследование.</p><h3>Как добывать</h3><p>Дверца открыта 20 из 60 секунд. Авто собирает свет днём и расходует органику ночью. В покое бульон светлеет. При 100% обнаружения партия заканчивается.</p><h3>Первый рейс</h3><p>Разведчики привозят чертежи, караваны — пищу, дозорные — сведения и энергию. Мини-игра улучшает результат рейса. В штабе можно тратить накопленное на паузе. Вернитесь к сцене и включите часы, чтобы отряд дошёл до цели.</p>',
   );
 }
 function requirement(st) {
+  if (st === rules.stages[4]) return 'Построить столицу и принять устав';
   return st.pop + ' колоний · + ' + rules.foodReward(state, st) + ' органики · ' + st.source;
 }
 function map() {
@@ -147,9 +160,14 @@ function ending() {
       icon(won ? 'flag' : 'flush') +
       '</span><p>' +
       (won
-        ? 'Колония освоила холодильник. Человек отступил, а город на полке продолжает расти.'
+        ? state.city.charter
+          ? SoupCity.ending(state)
+          : 'Колония освоила холодильник. Люди отступили.'
         : 'Хозяин заметил колонию и вылил суп. В следующей партии попробуйте покой и эволюцию.') +
-      '</p><p><b>' +
+      '</p>' + SoupGuides.speech(won ? (state.city.charter === 'republic' ? 'tim' : 'mira') : 'tim',
+        won ? (state.city.charter === 'republic' ? 'Дверца закрылась. Снимаю ночную вахту. Впервые за всю мою жизнь.' : 'За нашим столом теперь на одно место больше. Надо только найти чашку размером с человека.')
+          : 'Мой последний сигнал Лада успела нарисовать на крышке. Если здесь снова появится колония, она будет знать, когда пора затаиться.') +
+      '<p><b>' +
       count(Math.floor(state.seconds), ['секунда', 'секунды', 'секунд']) +
       ' · ' +
       count(state.pop, ['колония', 'колонии', 'колоний']) +
@@ -160,11 +178,12 @@ function ending() {
   $('new-game').onclick = newGame;
 }
 function newGame() {
+  $('crew-picker').value = '';
   state = rules.initial();
   running = false;
   elapsed = 0;
   lastFrame = 0;
-  tab = 'moves';
+
   save();
   $('dialog').close();
   render(true);
@@ -177,9 +196,6 @@ function restart() {
     '<p>Текущая колония будет заменена новой.</p><button class="primary" id="new-game">Начать сначала</button>',
   );
   $('new-game').onclick = newGame;
-}
-function activeTraits() {
-  return rules.traits.filter((t) => !branchFilter || t.branch === branchFilter);
 }
 function paintMoves() {
   $('commands').innerHTML =
@@ -201,124 +217,6 @@ function paintMoves() {
     '</div>';
   syncModes();
 }
-function traitButton(t) {
-  const learned = state.traits.includes(t.id),
-    unavailable = !!rules.reason(state, t.id);
-  return (
-    '<button class="tech-node ' +
-    (learned ? 'known' : unavailable ? 'locked' : 'buyable') +
-    '" data-trait="' +
-    t.id +
-    '" aria-label="' +
-    t.name +
-    ', ' +
-    (learned ? 'изучено' : t.cost + ' очков эволюции') +
-    '"><i>' +
-    icon(t.icon) +
-    '</i><span>' +
-    t.name +
-    '</span><small>' +
-    (learned ? 'Изучено' : (unavailable ? 'Закр. · ' : '') + t.cost + ' очк.') +
-    '</small></button>'
-  );
-}
-function paintTree() {
-  const branches = [...new Set(rules.traits.map((t) => t.branch))];
-  if (!branches.includes(branchFilter)) branchFilter = branches[0];
-  const nodes = activeTraits(),
-    tiers = [...new Set(nodes.map((t) => t.tier))].sort((a, b) => a - b);
-  const firstAvailable = nodes
-    .filter((t) => !rules.reason(state, t.id))
-    .sort((a, b) => a.tier - b.tier)[0];
-  const openTier = firstAvailable?.tier || 1;
-  const tabs = branches
-    .map(
-      (b) =>
-        '<button class="branch-tab" data-branch="' +
-        b +
-        '" aria-pressed="' +
-        (b === branchFilter) +
-        '">' +
-        b +
-        '</button>',
-    )
-    .join('');
-  const rows = tiers
-    .map((tier) => {
-      const level = nodes.filter((t) => t.tier === tier);
-      const ready = level.filter((t) => !rules.reason(state, t.id)).length;
-      const learned = level.filter((t) => state.traits.includes(t.id)).length;
-      const summary = ready
-        ? 'Доступно ' + ready
-        : learned
-          ? 'Изучено ' + learned + ' из ' + level.length
-          : count(level.length, ['признак', 'признака', 'признаков']);
-      return (
-        '<details class="tier" ' +
-        (tier === openTier ? 'open' : '') +
-        '><summary>Ярус ' +
-        tier +
-        '<small>' +
-        summary +
-        '</small></summary>' +
-        level.map(traitButton).join('') +
-        '</details>'
-      );
-    })
-    .join('');
-  $('commands').innerHTML =
-    '<div class="branch-tabs" role="group" aria-label="Ветки эволюции">' +
-    tabs +
-    '</div><div class="tree">' +
-    rows +
-    '</div>';
-}
-function traitDetail(id) {
-  const t = rules.traits.find((item) => item.id === id);
-  if (!t) return;
-  const blocked = rules.reason(state, id),
-    learned = state.traits.includes(id);
-  showDialog(
-    t.name,
-    '<div class="detail-kind"><i>' +
-      icon(t.icon) +
-      '</i>' +
-      t.branch +
-      ' · ступень ' +
-      t.tier +
-      '</div><p>' +
-      t.definition +
-      '</p><p><b>Эффект:</b> ' +
-      t.effect +
-      '</p><p><b>Зависимости:</b> ' +
-      (t.parents.length
-        ? t.parents.map((pid) => rules.traits.find((p) => p.id === pid)?.name || pid).join(', ')
-        : 'нет') +
-      '</p>' +
-      (learned
-        ? '<p><b>Талант изучен.</b></p>'
-        : blocked
-          ? '<p><b>' + t.cost + ' очков эволюции.</b> ' + blocked + '</p>'
-          : '<p><b>Цена: ' +
-            t.cost +
-            ' очков эволюции.</b></p><button class="primary" id="purchase">Изучить</button>'),
-  );
-  if ($('purchase'))
-    $('purchase').onclick = () => {
-      const learnedResult = rules.learn(state, id);
-      if (learnedResult.reason) {
-        tell(learnedResult.reason);
-        $('dialog').close();
-        return;
-      }
-      state = learnedResult.state;
-      save();
-      $('dialog').close();
-      render(true);
-      tell('Изучено: «' + t.name + '».');
-      tone('photo');
-    };
-}
 function syncModes() {
   $('commands')
     .querySelectorAll('[data-mode]')
@@ -329,6 +227,9 @@ function syncModes() {
     });
 }
 function syncControls() {
+  $('mobile-run').textContent = running ? 'Пауза' : 'Старт';
+  $('mobile-run').disabled = state.status !== 'playing';
+  $('mobile-speed').textContent = speed + '×';
   const button = $('run-toggle');
   if (button) {
     button.textContent = running ? 'Пауза' : state.seconds ? 'Продолжить' : 'Начать';
@@ -404,6 +305,28 @@ function eventNotices(before, after) {
   }
   return notices;
 }
+let visitTimer,
+  visitIndex = -1;
+function visitSite(id) {
+  const xy = townSites[id],
+    project = SoupCity.projects.find((p) => p.id === id);
+  if (!xy || !project) return;
+  const scene = $('scene');
+  scene.style.setProperty('--focus-x', (xy[0] / 640) * 100 + '%');
+  scene.style.setProperty('--focus-y', (xy[1] / 426) * 100 + '%');
+  scene.classList.add('visiting');
+  $('visit').textContent = project.name + ' · далее';
+  clearTimeout(visitTimer);
+  visitTimer = setTimeout(() => {
+    scene.classList.remove('visiting');
+    $('visit').textContent = 'Рассмотреть город';
+  }, 5200);
+}
+$('visit').onclick = () => {
+  const built = state.city.built;
+  visitIndex = (visitIndex + 1) % built.length;
+  visitSite(built[visitIndex]);
+};
 function render(rebuild = false) {
   const p = rules.phase(state),
     st = rules.stages[state.stage],
@@ -448,7 +371,7 @@ function render(rebuild = false) {
     : Array.from(
         { length: 5 },
         (_, i) =>
-          '<i class="' + (i < Math.ceil((5 * p.left) / (p.light ? 10 : 14)) ? 'on' : '') + '"></i>',
+          '<i class="' + (i < Math.ceil((5 * p.left) / (p.light ? 20 : 40)) ? 'on' : '') + '"></i>',
       ).join('');
   $('pop').innerHTML =
     '<i>' + icon('divide') + '</i>' + count(state.pop, ['колония', 'колонии', 'колоний']);
@@ -485,11 +408,46 @@ function render(rebuild = false) {
       rules.foodReward(state, next) +
       ' органики'
     : 'Все территории заселены';
-  for (const t of ['moves', 'evo']) {
-    $('tab-' + t).setAttribute('aria-selected', String(tab === t));
-    $('tab-' + t).tabIndex = tab === t ? 0 : -1;
-  }
-  $('commands').setAttribute('aria-labelledby', 'tab-' + tab);
+  if (state.stage === 3)
+    $('next').textContent = 'До столицы: ' + state.city.built.length + ' / 12 построек';
+  const c = state.city,
+    ch = SoupCity.chapter(c);
+  $('chapter-num').textContent = 'Глава ' + (ch + 1) + ' из 5';
+  $('chapter-name').textContent = SoupCity.chapters[ch].title;
+  const job = c.work && SoupCity.projects.find((p) => p.id === c.work.id);
+  const travel = c.voyage && SoupCity.routes.find((r) => r.id === c.voyage.id);
+  const statuses = [
+    job ? job.name + ' · ' + Math.max(0, c.work.until - state.seconds) + ' с' : 'Мастерская свободна',
+    travel
+      ? c.voyage.until <= state.seconds
+        ? 'Груз прибыл — заберите в экспедициях'
+        : travel.name + ' · ' + (c.voyage.until - state.seconds) + ' с'
+      : 'Отряд на причале',
+    c.prompt !== null ? 'Совет ждёт решения в дневнике' : '',
+    c.chapterRead < ch ? 'Новая глава в дневнике' : '',
+  ];
+  $('campaign-status').textContent = statuses.filter(Boolean).join(' · ');
+  renderGuide();
+  $('visit').hidden = !c.built.length;
+  $('plans').textContent = c.plans;
+  $('reserve').value = c.reserve;
+  $('economy').textContent =
+    'Энергия ' +
+    state.energy +
+    ' / ' +
+    SoupCity.capacity(state) +
+    ' · содержание −' +
+    SoupCity.upkeep(state) +
+    ' за 12 с · деление −' +
+    (state.traits.includes('selection') ? 7 : 6);
+  $('mobile-values').textContent =
+    'Эн. ' + state.energy + ' · Еда ' + state.food + ' · Эв. ' + state.dna + ' · Черт. ' + c.plans;
+  document
+    .querySelector('[data-screen="routes"]')
+    .classList.toggle('attention', !!c.voyage && c.voyage.until <= state.seconds);
+  document
+    .querySelector('[data-screen="story"]')
+    .classList.toggle('attention', c.prompt !== null || c.chapterRead < ch);
   if (over) {
     $('commands').innerHTML =
       '<div class="final-card"><i>' +
@@ -498,14 +456,12 @@ function render(rebuild = false) {
       (state.status === 'won' ? 'Город проснулся' : 'Колония обнаружена') +
       '</h3><button class="primary" id="result">Итоги партии</button></div>';
     $('result').onclick = ending;
-  } else if (rebuild || !$('commands').querySelector(tab === 'moves' ? '[data-mode]' : '[data-trait]'))
-    tab === 'moves' ? paintMoves() : paintTree();
-  else if (tab === 'moves') syncModes();
+  } else if (rebuild || !$('commands').querySelector('[data-mode]')) paintMoves();
+  else syncModes();
   syncControls();
 }
 function tick() {
-  if (!running || document.hidden || $('dialog').open || tab === 'evo' || state.status !== 'playing')
-    return;
+  if (!running || document.hidden || $('dialog').open || state.status !== 'playing') return;
   const before = state,
     oldStage = state.stage;
   state = rules.tick(state);
@@ -526,11 +482,26 @@ function tick() {
     tone('stage');
   }
 
+  if (state.city.built.length > before.city.built.length) {
+    const name = SoupCity.projects.find((p) => p.id === before.city.work.id).name;
+    visitSite(before.city.work.id);
+    messages.push('Построено: ' + name + '.');
+    save();
+    tone('stage');
+  }
+  if (state.city.prompt !== null && before.city.prompt === null)
+    messages.push('В дневнике собирается совет.');
+  if (state.city.voyage?.until === state.seconds) {
+    messages.push('Отряд вернулся с грузом.');
+    tone('stage');
+  }
+  if (state.event && before.event?.id !== state.event.id) tone(state.event.id);
   messages.push(...notices);
 
   if (messages.length) tell(messages.join(' '));
   if (state.status !== 'playing') {
     running = false;
+    music();
     save();
     render();
     tone(state.status);
@@ -544,7 +515,7 @@ function tick() {
   render();
 }
 function frame(now) {
-  if (!running || document.hidden || $('dialog').open || tab === 'evo') {
+  if (!running || document.hidden || $('dialog').open) {
     lastFrame = 0;
     return;
   }
@@ -562,37 +533,115 @@ document.querySelectorAll('[data-icon]').forEach((el) => (el.innerHTML = icon(el
 $('commands').onclick = (e) => {
   const b = e.target.closest('button');
   if (!b) return;
-  if (b.dataset.trait) {
-    stop();
-    traitDetail(b.dataset.trait);
-  }
   if (b.dataset.mode) {
     state = rules.choose(state, b.dataset.mode);
     save();
     render();
     tell('Режим: ' + modeInfo[b.dataset.mode][1] + '.');
   }
-  if (b.dataset.branch) {
-    branchFilter = b.dataset.branch;
-    render(true);
-  }
 };
-function setTab(t) {
-  tab = t;
-  if (t === 'evo')
-    stop('Эволюция на паузе. Вернуться к симуляции можно кнопкой над шкалой обнаружения.');
-  render(true);
-  $('tab-' + t).focus({ preventScroll: true });
+function music() {
+  SoupAudio.sync(musicOn, running, () => state);
+  $('music').setAttribute('aria-pressed', String(musicOn));
+  $('music').textContent = musicOn ? 'Музыка ♪' : 'Музыка выкл.';
 }
-for (const t of ['moves', 'evo']) {
-  $('tab-' + t).onclick = () => setTab(t);
-  $('tab-' + t).onkeydown = (e) => {
-    if (['ArrowLeft', 'ArrowRight'].includes(e.key)) {
-      e.preventDefault();
-      setTab(t === 'moves' ? 'evo' : 'moves');
+function cityAction(action, id) {
+  const res = SoupCity.order(state, action, id);
+  if (!res.reason) {
+    state = res.state;
+    save();
+    render();
+    paint(null);
+    if (['build', 'launch', 'claim', 'decide', 'charter'].includes(action)) tone(action);
+  }
+  return res;
+}
+function field() {
+  const v = state.city.voyage;
+  if (!v || cityAction('play').reason) return;
+  window.playFieldGame(
+    v.id,
+    v.seed,
+    (success) => {
+      if (success) {
+        cityAction('master', v.seed);
+        tone('claim');
+      } else tone('eat');
+      window.dispatchEvent(new CustomEvent('soup:refresh'));
+    },
+    (n) => {
+      if (soundOn) SoupAudio.cue(n);
+    },
+  );
+}
+function renderGuide() {
+  const tip = SoupGuides.advice(state, $('crew-picker').value);
+  const quote = $('crew-quote');
+  if (quote.dataset.words !== tip.words || quote.dataset.who !== tip.who) {
+    quote.innerHTML = SoupGuides.speech(tip.who, tip.words);
+    quote.dataset.words = tip.words;
+    quote.dataset.who = tip.who;
+  }
+  $('crew-follow').textContent = tip.label;
+  $('crew-follow').dataset.target = tip.screen;
+}
+$('crew-picker').onchange = renderGuide;
+$('crew-follow').onclick = () => {
+  const dest = $('crew-follow').dataset.target;
+  if (dest === 'clock') {
+    $('run-toggle').click();
+  } else if (dest === 'modes' || dest === 'rest') {
+    const control = document.querySelector('[data-mode="' + (dest === 'rest' ? 'rest' : state.mode) + '"]');
+    if (control) {
+      control.scrollIntoView({ block: 'center' });
+      control.focus({ preventScroll: true });
     }
-  };
+  } else screen(dest);
+};
+function screen(id) {
+  stop();
+  render();
+  if (id === 'evolution') {
+    window.openEvolution({
+      getState: () => state,
+      buy: (key) => {
+        const result = rules.learn(state, key);
+        if (!result.reason) {
+          state = result.state;
+          save();
+          render();
+          tone('photo');
+        }
+        return result;
+      },
+    });
+  } else window.openHeadquarters(id, { getState: () => state, act: cityAction, field });
 }
+document.querySelectorAll('[data-screen]').forEach((b) => (b.onclick = () => screen(b.dataset.screen)));
+$('reserve').onchange = (e) => cityAction('reserve', Number(e.target.value));
+$('music').onclick = () => {
+  musicOn = !musicOn;
+  try {
+    localStorage.setItem('soupostat.music', musicOn ? 'on' : 'off');
+  } catch {}
+  music();
+};
+$('mobile-run').onclick = () => $('run-toggle').click();
+$('mobile-speed').onclick = () =>
+  document.querySelector('[data-speed="' + (speed === 4 ? 1 : speed * 2) + '"]').click();
+window.soupBack = () => {
+  const modal = [...document.querySelectorAll('dialog[open]')].pop();
+  if (modal) {
+    modal.close();
+    return true;
+  }
+  if (running) {
+    stop('Партия на паузе');
+    render();
+    return true;
+  }
+  return false;
+};
 $('run-toggle').onclick = () => {
   if (state.status !== 'playing') return;
   if (running) {
@@ -600,8 +649,22 @@ $('run-toggle').onclick = () => {
     render();
     return;
   }
-  if (tab === 'evo') setTab('moves');
+  if (!state.city.intro) {
+    showDialog(
+      'Записка на крышке',
+      '<div class="opening-paint" role="img" aria-label="Забытый суп под лампой"></div><blockquote>«В воскресенье разобрать холодильник»</blockquote><p>' +
+        SoupCity.chapters[0].text +
+        '</p>' + SoupGuides.speech('lada', SoupCity.chapters[0].testimony) + '<button class="primary" id="begin-story">Войти в холодильник</button>',
+    );
+    $('begin-story').onclick = () => {
+      cityAction('read');
+      $('dialog').close();
+      $('run-toggle').click();
+    };
+    return;
+  }
   running = true;
+  music();
   lastFrame = 0;
   frameId = requestAnimationFrame(frame);
   render();
@@ -650,6 +713,7 @@ try {
   if ([1, 2, 4].includes(savedSpeed)) speed = savedSpeed;
 } catch {}
 showSound();
+music();
 render(true);
 paint(null);
 syncControls();

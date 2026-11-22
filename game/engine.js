@@ -1,6 +1,8 @@
 (function (root) {
   'use strict';
 
+  const city =
+    typeof module !== 'undefined' && module.exports ? require('./campaign.js') : root.SoupCity;
   const stages = [
     { name: 'Кастрюля', pop: 4, food: 24, source: 'овощной бульон' },
     { name: 'Край кастрюли', pop: 12, food: 12, source: 'крошки на ободке' },
@@ -52,7 +54,8 @@
 
   function initial(seed = Math.floor(Math.random() * 0x100000000)) {
     return {
-      version: 2,
+      version: 3,
+      city: city.init(),
       seconds: 0,
       pop: 4,
       energy: 8,
@@ -77,14 +80,14 @@
   }
 
   function phase(state) {
-    const within = state.seconds % 24;
-    const day = Math.floor(state.seconds / 24) + 1;
-    const light = within < 10;
+    const within = state.seconds % 60;
+    const day = Math.floor(state.seconds / 60) + 1;
+    const light = within < 20;
     const index = (day - 1) % 3;
     return {
       day,
       light,
-      left: (light ? 10 : 24) - within,
+      left: (light ? 20 : 60) - within,
       inspection: ['Обычный', 'Беглый', 'Пристальный'][index],
       modifier: [0, -1, 1][index],
     };
@@ -111,20 +114,27 @@
   }
 
   function settle(state, buff) {
-    while (state.stage < territory(state.pop)) {
+    while (state.stage < Math.min(3, territory(state.pop))) {
       state.stage++;
       state.food += stages[state.stage].food + (buff.territoryFood || 0);
       state.energy += buff.territoryEnergy || 0;
       state.pop += buff.territoryBirth || 0;
       state.dna += 3 + (owns(state, 'divergence') ? 3 : 0) + (buff.territoryDNA || 0);
     }
-    if (state.stage === stages.length - 1) state.status = 'won';
+    if (state.city.built.includes('capital')) {
+      state.stage = 4;
+      state.status = 'won';
+      state.food += foodReward(state, stages[4]);
+    }
   }
 
   function choose(state, mode) {
     return state.status === 'playing' && modes.includes(mode) ? { ...state, mode } : state;
   }
 
+  function researchEnergy(node, state) {
+    return 3 + node.tier * 2 - (state?.city?.built.includes('press') ? 2 : 0);
+  }
   function reason(state, id) {
     const node = byId.get(id);
     if (!node) return 'Неизвестный признак.';
@@ -134,6 +144,8 @@
     if (missing.length)
       return 'Сначала изучите: ' + missing.map((key) => byId.get(key).name).join(', ') + '.';
     if (state.dna < node.cost) return 'Не хватает очков эволюции: ' + (node.cost - state.dna) + '.';
+    if (state.energy < researchEnergy(node, state))
+      return 'Не хватает энергии: ' + (researchEnergy(node, state) - state.energy) + '.';
     return '';
   }
 
@@ -145,7 +157,7 @@
       state: {
         ...state,
         dna: state.dna - byId.get(id).cost,
-        energy: state.energy + (bonuses(ids).learnEnergy || 0),
+        energy: state.energy - researchEnergy(byId.get(id), state) + (bonuses(ids).learnEnergy || 0),
         traits: ids,
       },
       reason: '',
@@ -172,14 +184,14 @@
     const event = pool[draw(s, 1) % pool.length];
     s.event = { id: event.id, start: s.seconds, until: s.seconds + event.duration };
     s.lastEvent = event.id;
-    s.nextEvent = s.seconds + 24 + (draw(s, 2) % 17);
+    s.nextEvent = s.seconds + 45 + (draw(s, 2) % 31);
     if (event.id === 'stir') s.cloud = clamp(s.cloud + 12);
     if (event.id === 'crumbs') s.food += 6;
   }
 
   function tick(state) {
     if (state.status !== 'playing') return state;
-    const s = { ...state, seconds: state.seconds + 1 };
+    const s = { ...state, city: { ...state.city }, seconds: state.seconds + 1 };
     const { light, modifier, day } = phase(state);
     const effect = state.event?.id;
     const buff = bonuses(s.traits);
@@ -234,8 +246,8 @@
       }
     }
     if (!resting && s.seconds % 6 === 0) {
-      const energyCost = (has('selection') ? 5 : 4) - (light ? 0 : buff.nightBirthDiscount || 0);
-      if (s.energy >= energyCost) {
+      const energyCost = (has('selection') ? 7 : 6) - (light ? 0 : buff.nightBirthDiscount || 0);
+      if (s.energy >= energyCost + s.city.reserve && s.pop < city.housing(s)) {
         s.energy -= energyCost;
         s.pop +=
           3 +
@@ -249,7 +261,7 @@
       }
     }
     const active = !resting && (harvesting || (feeding && state.food >= cost) || s.pop > state.pop);
-    if (active && s.seconds % (has('variation') ? 3 : 4) === 0) s.dna++;
+    if (active && s.seconds % (has('variation') ? 18 : 24) === 0) s.dna++;
     if (light !== phase(s).light) {
       if (!resting && has('drift')) s.dna += draw(s, 0) % 3;
       if (light) {
@@ -262,15 +274,19 @@
     }
     s.pigment = clamp(s.pigment - Number(!harvesting && s.seconds % 2 === 0) - Number(resting));
     s.cloud = clamp(s.cloud - Number(!feeding && s.seconds % 2 === 0) - Number(resting));
+    city.advance(s);
+    s.pop = Math.min(s.pop, Math.max(state.pop, city.housing(s)));
     settle(s, buff);
+    s.energy = Math.min(s.energy, Math.max(state.energy, city.capacity(s)));
+    s.dna = Math.min(s.dna, Math.max(state.dna, 32));
     if (s.status === 'won') {
       s.event = null;
       return s;
     }
-    if (light && s.seconds % 2 === 0) {
+    if (light && s.seconds % 5 === 0) {
       const visible = Math.floor(s.pigment / 12) + Math.floor(s.cloud / 12) + s.stage;
       s.suspicion = clamp(
-        s.suspicion + visible + modifier - 2 - (effect === 'fog' ? 2 : 0) - (resting ? 6 : 0),
+        s.suspicion + visible + modifier - 3 - (effect === 'fog' ? 2 : 0) - (resting ? 6 : 0),
       );
     } else if (!light && (resting || s.seconds % 4 === 0)) {
       s.suspicion = clamp(s.suspicion - (resting ? 2 : 1));
@@ -302,7 +318,7 @@
       return null;
     if (raw.version === undefined) return migrate(raw);
     if (
-      raw.version !== 2 ||
+      ![2, 3].includes(raw.version) ||
       !integer(raw.seconds) ||
       !integer(raw.seed, 0, 0xffffffff) ||
       !integer(raw.food) ||
@@ -329,10 +345,21 @@
     )
       return null;
     // Finished v1 colonies retain the ending they already earned under the old population target.
-    const expected =
-      raw.status === 'won' ? 4 : Math.min(territory(raw.pop), raw.status === 'lost' ? 3 : 4);
-    if (raw.stage !== expected || (raw.status === 'playing' && expected === 4)) return null;
-    return { ...raw, traits: [...raw.traits] };
+    if (raw.version === 3 && !city.valid(raw.city)) return null;
+    const expected = raw.status === 'won' ? 4 : Math.min(3, territory(raw.pop));
+    if (raw.stage !== expected && !(raw.version === 2 && raw.status === 'playing' && raw.stage === 4))
+      return null;
+    if (raw.version === 3 && raw.city.built.includes('capital') && raw.status !== 'won') return null;
+    return {
+      ...raw,
+      version: 3,
+      stage: expected,
+      traits: [...raw.traits],
+      city: raw.version === 2 ? city.init() : structuredCopy(raw.city),
+    };
+  }
+  function structuredCopy(value) {
+    return JSON.parse(JSON.stringify(value));
   }
 
   function migrate(old) {
@@ -372,7 +399,7 @@
     if (old.pact) inherit('variation');
     s.traits = [...ids];
     s.nextEvent = s.seconds + 5 + (s.seed % 4);
-    s.stage = old.status === 'won' ? 4 : Math.min(territory(s.pop), old.status === 'lost' ? 3 : 4);
+    s.stage = old.status === 'won' ? 4 : Math.min(territory(s.pop), 3);
     s.food += totalFood(s.stage) - stages[0].food;
     s.dna += s.stage * 3;
     if (s.stage === 4 && s.status === 'playing') s.status = 'won';
@@ -380,6 +407,7 @@
   }
 
   const api = {
+    researchEnergy,
     initial,
     phase,
     stages,

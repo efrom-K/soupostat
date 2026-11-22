@@ -1,0 +1,506 @@
+dialog.ev-dialog {
+  --ev-ink: #3c3328;
+  --ev-muted: #7a6c57;
+  --ev-paper: #fbf4e3;
+  --ev-line: #d5c6aa;
+  --ev-red: #a94e34;
+  width: min(100vw, 100vw);
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  color: var(--ev-ink);
+  background: var(--ev-paper);
+  font:
+    15px/1.45 Nunito,
+    'Trebuchet MS',
+    sans-serif;
+  box-shadow: inset 0 0 0 8px #efe4cc;
+}
+dialog.ev-dialog::backdrop {
+  background: #241b15;
+}
+dialog.ev-dialog *,
+dialog.ev-dialog *::before,
+dialog.ev-dialog *::after {
+  box-sizing: border-box;
+}
+dialog.ev-dialog button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+dialog.ev-dialog button:focus-visible,
+dialog.ev-dialog [tabindex]:focus-visible {
+  outline: 3px solid #27778b;
+  outline-offset: 3px;
+}
+.ev-shell {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background-image: radial-gradient(#7a654210 0.8px, transparent 0.8px);
+  background-size: 5px 5px;
+}
+.ev-head {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 17px clamp(18px, 3vw, 44px) 14px;
+  border-bottom: 2px solid #b7a487;
+  background: #fff9eb;
+}
+.ev-head h1 {
+  margin: 1px 0 0;
+  font:
+    36px/1.1 Neucha,
+    'Trebuchet MS',
+    sans-serif;
+  letter-spacing: -0.5px;
+  color: #8e3d27;
+}
+.ev-kicker,
+.ev-inspector-kicker {
+  margin: 0;
+  color: #927b5a;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1.4px;
+}
+.ev-sub {
+  margin: 3px 0 0;
+  color: var(--ev-muted);
+  font-size: 13px;
+}
+.ev-tools {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.ev-resource {
+  padding: 8px 13px;
+  border: 1px solid #d8c5a3;
+  border-radius: 8px;
+  background: #f4e8ce;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.ev-close {
+  width: 40px;
+  height: 40px;
+  border: 1.5px solid #a89474;
+  border-radius: 50%;
+  background: #f8efd9;
+  font-size: 28px !important;
+  line-height: 1;
+}
+.ev-main {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 326px;
+  min-height: 0;
+}
+.ev-map-column {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--ev-line);
+}
+.ev-map-toolbar {
+  flex: 0 0 auto;
+  min-height: 43px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 16px;
+  border-bottom: 1px solid #e0d3ba;
+  background: #f7eedb;
+}
+.ev-hint {
+  color: #776a58;
+  font-size: 12px;
+}
+.ev-zoom {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.ev-zoom button {
+  min-width: 31px;
+  height: 29px;
+  padding: 0 8px;
+  border: 1px solid #c4b394;
+  border-radius: 6px;
+  background: #fff9eb;
+  font-weight: 800;
+}
+.ev-zoom button[data-fit] {
+  margin-left: 4px;
+  font-size: 12px;
+}
+.ev-zoom output {
+  min-width: 44px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 800;
+}
+.ev-viewport {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  touch-action: none;
+  cursor: grab;
+  background-color: #f9f2e2;
+  background-image: radial-gradient(#b5a48738 0.8px, transparent 0.8px);
+  background-size: 18px 18px;
+}
+.ev-viewport.is-dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+.ev-map {
+  display: block;
+  max-width: none;
+}
+.ev-grid-line {
+  stroke: #d9cbb2;
+  stroke-width: 1;
+  stroke-dasharray: 2 8;
+}
+.ev-tier-label {
+  fill: #948267;
+  font:
+    900 11px Nunito,
+    sans-serif;
+  letter-spacing: 1.2px;
+}
+.ev-branch-note {
+  font:
+    800 12px Nunito,
+    sans-serif;
+}
+.ev-edge {
+  fill: none;
+  stroke: #a99a7d;
+  stroke-width: 2;
+  opacity: 0.58;
+  marker-end: url(#ev-arrow);
+}
+.ev-edge-cross {
+  stroke: #a94e34;
+  stroke-width: 2.4;
+  stroke-dasharray: 7 5;
+  opacity: 0.76;
+}
+.ev-edge.is-lit {
+  stroke: #b04e2f;
+  stroke-width: 3.4;
+  opacity: 1;
+}
+.ev-node {
+  cursor: pointer;
+}
+.ev-card {
+  fill: #fff9e9;
+  stroke-width: 3;
+  filter: drop-shadow(1px 3px 0 #88795d24);
+  transition:
+    fill 0.13s,
+    filter 0.13s,
+    opacity 0.13s;
+}
+.ev-node:hover .ev-card,
+.ev-node.is-selected .ev-card {
+  fill: #fffef5;
+  filter: drop-shadow(0 0 4px #c48b4777);
+}
+.ev-node.is-selected .ev-card {
+  stroke-width: 4;
+}
+.ev-node.is-locked {
+  opacity: 0.7;
+}
+.ev-node.is-locked .ev-card {
+  fill: #f0e9dc;
+}
+.ev-node-branch {
+  font:
+    800 11px Nunito,
+    sans-serif;
+}
+.ev-node-name {
+  fill: #3d3429;
+  font:
+    800 15px Nunito,
+    sans-serif;
+}
+.ev-node-tier {
+  fill: #95846a;
+  font:
+    900 9px Nunito,
+    sans-serif;
+  letter-spacing: 0.7px;
+}
+.ev-state-dot {
+  fill: #b7a98e;
+}
+.ev-state-dot.ev-owned {
+  fill: #4c8752;
+}
+.ev-state-dot.ev-ready {
+  fill: #d48b31;
+}
+.ev-state-dot.ev-locked {
+  fill: #a8a08f;
+}
+.ev-map-foot {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  min-height: 76px;
+  padding: 7px 15px;
+  border-top: 1px solid #dfd0b5;
+  background: #f8f0df;
+}
+.ev-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  color: #6f6250;
+  font-size: 11px;
+}
+.ev-legend span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ev-dot {
+  width: 9px;
+  height: 9px;
+  display: inline-block;
+  border-radius: 50%;
+}
+.ev-dot.ev-owned {
+  background: #4c8752;
+}
+.ev-dot.ev-ready {
+  background: #d48b31;
+}
+.ev-dot.ev-locked {
+  background: #aaa08b;
+}
+.ev-mini {
+  width: min(30vw, 210px);
+  height: 58px;
+  overflow: visible;
+  cursor: crosshair;
+}
+.ev-mini-bg {
+  fill: #f3e7cf;
+  stroke: #bea987;
+  stroke-width: 1;
+}
+.ev-mini-window {
+  fill: #ffffff18;
+  stroke: #a34c32;
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+.ev-inspector {
+  min-height: 0;
+  overflow: auto;
+  padding: 24px 22px;
+  background: #fff9eb;
+}
+.ev-branch-label {
+  margin: 8px 0 2px;
+  color: #a14a32;
+  font-size: 12px;
+  font-weight: 900;
+}
+.ev-branch-label span {
+  color: #8a7a62;
+  font-weight: 700;
+}
+.ev-inspector h2 {
+  margin: 3px 0 8px;
+  font:
+    29px/1.15 Neucha,
+    'Trebuchet MS',
+    sans-serif;
+}
+.ev-status {
+  margin: 0 0 19px;
+  padding: 7px 9px;
+  border-left: 3px solid #aaa08b;
+  background: #f1eada;
+  color: #6b5f4f;
+  font-size: 12px;
+  font-weight: 800;
+}
+.ev-status.is-owned {
+  border-color: #4c8752;
+  background: #e8f0df;
+  color: #3e6e43;
+}
+.ev-status.is-ready {
+  border-color: #d48b31;
+  background: #fbefda;
+  color: #81541d;
+}
+.ev-inspector dl {
+  margin: 0;
+}
+.ev-inspector dt {
+  margin-top: 15px;
+  color: #9a7650;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.ev-inspector dd {
+  margin: 4px 0 0;
+  color: #534838;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.ev-costs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 21px 0 8px;
+}
+.ev-costs span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 10px;
+  border: 1px solid #dac9a8;
+  border-radius: 7px;
+  background: #f6ecd6;
+}
+.ev-costs small {
+  color: #817159;
+  font-size: 10px;
+  line-height: 1.2;
+}
+.ev-costs b {
+  color: #493a29;
+  font:
+    23px Neucha,
+    sans-serif;
+}
+.ev-price-note {
+  margin: 5px 0 0;
+  color: #8a6b46;
+  font-size: 11px;
+}
+.ev-buy {
+  width: 100%;
+  margin-top: 18px;
+  padding: 11px;
+  border: 0;
+  border-radius: 7px;
+  background: #527447;
+  color: white !important;
+  font-weight: 900 !important;
+}
+.ev-buy:disabled {
+  background: #c8bda7;
+  color: #655d50 !important;
+  cursor: default !important;
+}
+@media (max-width: 800px) {
+  dialog.ev-dialog {
+    box-shadow: inset 0 0 0 4px #efe4cc;
+  }
+  .ev-head {
+    padding: 12px 14px;
+  }
+  .ev-head h1 {
+    font-size: 29px;
+  }
+  .ev-kicker {
+    font-size: 8px;
+  }
+  .ev-sub {
+    font-size: 11px;
+  }
+  .ev-main {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(190px, 1fr) auto;
+  }
+  .ev-map-column {
+    grid-row: 1;
+    border-right: 0;
+    min-height: 0;
+  }
+  .ev-inspector {
+    grid-row: 2;
+    max-height: 36dvh;
+    padding: 12px 16px;
+    border-top: 2px solid var(--ev-line);
+  }
+  .ev-inspector h2 {
+    font-size: 24px;
+  }
+  .ev-inspector dl {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    column-gap: 10px;
+  }
+  .ev-inspector dt {
+    margin-top: 8px;
+  }
+  .ev-inspector dd {
+    margin-top: 8px;
+  }
+  .ev-costs {
+    margin-top: 12px;
+  }
+  .ev-buy {
+    margin-top: 8px;
+  }
+  .ev-hint {
+    max-width: 46%;
+    font-size: 10px;
+  }
+  .ev-map-toolbar {
+    padding: 5px 8px;
+  }
+  .ev-resource {
+    padding: 6px 8px;
+    font-size: 10px;
+  }
+  .ev-tools {
+    gap: 7px;
+  }
+  .ev-close {
+    width: 34px;
+    height: 34px;
+  }
+  .ev-mini {
+    width: 135px;
+    height: 44px;
+  }
+  .ev-map-foot {
+    min-height: 55px;
+    padding: 4px 8px;
+  }
+  .ev-legend {
+    gap: 7px;
+    font-size: 9px;
+  }
+}

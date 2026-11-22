@@ -1,10 +1,23 @@
 const cachePrefix = 'soupostat:' + self.registration.scope + ':';
-const cacheName = cachePrefix + '2.0.0';
+const cacheName = cachePrefix + '3.0.0-crew';
 const files = [
   'index.html',
   'icons.js',
+  'portraits.js',
+  'portraits.css',
+  'guides.js',
   'traits.js',
   'engine.js',
+  'campaign.js',
+  'town.js',
+  'evolution.js',
+  'evolution.css',
+  'headquarters.js',
+  'headquarters.css',
+  'minigames.js',
+  'minigames.css',
+  'audio.js',
+  'campaign.css',
   'scene.js',
   'app.js',
   'style.css',

@@ -347,6 +347,7 @@ function startScene(canvas, getState, getTime) {
       village(444, 386, 1.05, 8);
       village(492, 91, 0.82, 4);
     }
+    drawTown(ctx,s,t);
     drawEvent(s.event, time);
     if (!staticMotion) {
       const age = t - stagePulseAt;
