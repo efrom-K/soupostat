@@ -4,13 +4,14 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
     <meta name="theme-color" content="#f5ebd5" />
-    <meta name="description" content="Пошаговая рисованная стратегия о колонии в забытом супе." />
+    <meta name="description" content="Рисованная стратегия в реальном времени о колонии в забытом супе." />
     <link rel="icon" href="assets/icon-192.png" />
     <link rel="apple-touch-icon" href="assets/icon-192.png" />
     <link rel="manifest" href="manifest.webmanifest" />
     <title>Супостат — колония в холодильнике</title>
     <link rel="stylesheet" href="style.css" />
     <script defer src="icons.js"></script>
+    <script defer src="traits.js"></script>
     <script defer src="engine.js"></script>
     <script defer src="scene.js"></script>
     <script defer src="app.js"></script>
@@ -56,6 +57,13 @@
             <div><b id="watch-label"></b><span id="watch-note"></span></div>
             <div class="phase-dots" id="phase-dots"></div>
           </div>
+          <div class="event-banner" id="event-banner" aria-label="Случайное событие">
+            <span class="event-mark" id="event-mark" aria-hidden="true"></span>
+            <span class="event-copy"
+              ><b id="event-name">Случайные события</b><span id="event-detail">Пока тихо</span></span
+            >
+            <span class="event-timer" id="event-timer"></span>
+          </div>
         </section>
         <section class="console" aria-label="Управление колонией">
           <div class="console-head">
@@ -70,6 +78,18 @@
             <div class="stat food">
               <div data-icon="carrot"></div>
               <span>Органика<strong id="food"></strong></span>
+            </div>
+            <div class="stat dna">
+              <div data-icon="divide"></div>
+              <span>Эволюция<strong id="dna"></strong></span>
+            </div>
+          </div>
+          <div class="time-controls" aria-label="Управление временем">
+            <button id="run-toggle" class="primary" aria-pressed="false">Начать</button>
+            <div class="speed-controls" role="group" aria-label="Скорость игры">
+              <button data-speed="1" aria-pressed="true">1×</button>
+              <button data-speed="2" aria-pressed="false">2×</button>
+              <button data-speed="4" aria-pressed="false">4×</button>
             </div>
           </div>
           <div class="suspicion">
@@ -90,7 +110,7 @@
           </div>
           <div class="tabs" role="tablist" aria-label="Панель управления">
             <button id="tab-moves" role="tab" aria-controls="commands" aria-selected="true">
-              Действия</button
+              Режим колонии</button
             ><button id="tab-evo" role="tab" aria-controls="commands" aria-selected="false">
               Эволюция
             </button>
@@ -108,8 +128,7 @@
       </div>
       <div class="logline">
         <span data-icon="pencil"></span
-        ><output id="feedback" aria-live="polite"
-          >Лампа зажглась. У колонии есть три хода на свету.</output
+        ><output id="feedback" aria-live="polite">Дверца открыта. Колония готова к росту.</output
         ><button id="restart">Сначала</button>
       </div>
     </main>

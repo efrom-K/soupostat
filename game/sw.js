@@ -1,8 +1,9 @@
 const cachePrefix = 'soupostat:' + self.registration.scope + ':';
-const cacheName = cachePrefix + '1.0.0';
+const cacheName = cachePrefix + '2.0.0';
 const files = [
   'index.html',
   'icons.js',
+  'traits.js',
   'engine.js',
   'scene.js',
   'app.js',

@@ -1,122 +1,48 @@
 'use strict';
 const $ = (id) => document.getElementById(id);
 const rules = SoupGame;
-const saveKey = 'soupostat.game.v1';
+const saveKey = 'soupostat.game.v2';
+const legacyKey = 'soupostat.game.v1';
 let state = rules.initial(),
   soundOn = true,
   saveWarning = '',
   tab = 'moves',
   audio;
+let running = false,
+  speed = 1,
+  lastFrame = 0,
+  elapsed = 0,
+  lastSave = 0,
+  branchFilter = '';
+let renderedEvent = null,
+  frameId = 0;
 try {
-  const raw = localStorage.getItem(saveKey);
+  let raw = localStorage.getItem(saveKey);
   if (raw) {
-    const saved = JSON.parse(raw);
-    if (rules.valid(saved)) state = saved;
-    else saveWarning = 'Прежнее сохранение не удалось прочитать.';
+    const restored = rules.restore(JSON.parse(raw));
+    if (restored) state = restored;
+    else saveWarning = 'Сохранение игры не удалось прочитать.';
+  } else if ((raw = localStorage.getItem(legacyKey))) {
+    const restored = rules.restore(JSON.parse(raw));
+    if (restored) {
+      state = restored;
+      localStorage.setItem(saveKey, JSON.stringify(state));
+    } else saveWarning = 'Старое сохранение игры не удалось перенести.';
   }
   soundOn = localStorage.getItem('soupostat.sound') !== 'off';
 } catch {
-  saveWarning = 'Локальное сохранение недоступно.';
+  saveWarning = 'Сохранение игры не удалось прочитать или записать.';
 }
-const titles = [
-  'Забытый суп',
-  'Дозор на ободке',
-  'Огуречный порт',
-  'Республика полки',
-  'Город под лампой',
-];
-const stories = [
-  'В бульоне шевельнулась первая колония.',
-  'Дозорные заняли ободок. Вид отсюда лучше. И вас виднее.',
-  'На огуречной банке подняли первый флаг.',
-  'Сырная пристань и стеклянная полка теперь ваши.',
-  'На полке зажглись окна. Человек тихо закрывает дверцу.',
-];
 const stageIcons = ['pot', 'rim', 'jar', 'cheese', 'fridge'];
-const shortNames = ['Кастрюля', 'Ободок', 'Банка', 'Полка', 'Холодильник'];
-const moves = {
-  eat: ['carrot', 'Съесть кусочек'],
-  photo: ['bulb', 'Поймать свет'],
-  divide: ['divide', 'Разделиться'],
-  hide: ['hide', 'Затаиться'],
+const modeInfo = {
+  auto: ['sun', 'Авто', 'Свет днём, еда ночью'],
+  eat: ['carrot', 'Органика', 'Питаться из запаса при любой фазе'],
+  photo: ['bulb', 'Свет', 'Копить энергию при открытой дверце'],
+  rest: ['moon', 'Покой', 'Осветлить суп и снизить подозрение'],
 };
-const techs = {
-  eaters: [
-    'carrot',
-    'Крошкоеды',
-    'Едоки · основа',
-    'Каждая порция приносит на 2 энергии больше и добавляет ещё 2 мути.',
-    'Первая ступень ветки едоков.',
-  ],
-  feast: [
-    'pot',
-    'Большая ложка',
-    'Едоки · специализация',
-    'Каждая порция даёт ещё 3 энергии и поднимает ещё 4 мути.',
-    'Нужны «Крошкоеды». Альтернатива — «Тихий ужин».',
-  ],
-  quiet: [
-    'hide',
-    'Тихий ужин',
-    'Едоки · специализация',
-    'Каждая порция поднимает на 3 мути меньше. Вы сохраняете выход энергии от «Крошкоедов».',
-    'Нужны «Крошкоеды». Альтернатива — «Большая ложка».',
-  ],
-  banquet: [
-    'cheese',
-    'Пиршество',
-    'Едоки · вершина',
-    'Каждая порция также создаёт 2 колонии, но добавляет ещё 4 мути. Запас порций конечен.',
-    'Нужна любая специализация едоков.',
-  ],
-  lights: [
-    'bulb',
-    'Искра',
-    'Светляки · основа',
-    'Свет даёт на 3 энергии больше. После каждого сбора в супе остаётся ещё 3 пигмента.',
-    'Первая ступень ветки светляков.',
-  ],
-  flare: [
-    'sun',
-    'Люстра',
-    'Светляки · специализация',
-    'Сбор света даёт ещё 4 энергии и добавляет ещё 6 пигмента.',
-    'Нужна «Искра». Альтернатива — «Абажур».',
-  ],
-  shade: [
-    'moon',
-    'Абажур',
-    'Светляки · специализация',
-    'При сборе света образуется на 6 пигмента меньше, а выход энергии уменьшается на 1.',
-    'Нужна «Искра». Альтернатива — «Люстра».',
-  ],
-  festival: [
-    'flag',
-    'Праздник огней',
-    'Светляки · вершина',
-    'Каждый сбор света также создаёт 2 колонии и добавляет ещё 4 пигмента.',
-    'Нужна любая специализация светляков.',
-  ],
-  pact: [
-    'divide',
-    'Сговор под крышкой',
-    'Общий талант',
-    'Укрытие дополнительно снимает 4 очка обнаружения на свету или 8 в темноте.',
-    'Требуются обе основы — «Крошкоеды» и «Искра».',
-  ],
-};
-const owned = (id, s = state) =>
-  ({
-    eaters: s.eaters >= 1,
-    lights: s.lights >= 1,
-    banquet: s.eaters === 3,
-    festival: s.lights === 3,
-    pact: s.pact,
-  })[id] ||
-  s.eatStyle === id ||
-  s.lightStyle === id;
-const signed = (n) => (n > 0 ? '+' + n : n < 0 ? '−' + Math.abs(n) : '0');
-const plural = (n, forms) =>
+const count = (n, forms) =>
+  n +
+  ' ' +
   forms[
     n % 10 === 1 && n % 100 !== 11
       ? 0
@@ -124,21 +50,12 @@ const plural = (n, forms) =>
         ? 1
         : 2
   ];
-function count(n, forms) {
-  return n + ' ' + plural(n, forms);
-}
-function requirement(st) {
-  const items = [st.pop + ' колоний'];
-  if (st.eaters) items.push('едоки ' + st.eaters);
-  if (st.lights) items.push('светляки ' + st.lights);
-  return items.join(' · ');
-}
 function save() {
   try {
     localStorage.setItem(saveKey, JSON.stringify(state));
     saveWarning = '';
   } catch {
-    saveWarning = 'Хранилище недоступно. Эта партия сохранится только до закрытия окна.';
+    saveWarning = 'Не удалось сохранить партию. Продолжайте играть, пока страница открыта.';
   }
 }
 function tell(message) {
@@ -152,8 +69,6 @@ function tone(id) {
     const notes = {
       eat: [230, 290],
       photo: [470, 690],
-      hide: [270, 190],
-      divide: [330, 440],
       stage: [392, 494, 587],
       won: [392, 494, 587, 784],
       lost: [330, 247, 165],
@@ -173,7 +88,7 @@ function tone(id) {
       o.stop(t + 0.17);
     });
   } catch {
-    /* Audio is optional on devices without a sound context. */
+    /* Audio is optional. */
   }
 }
 function showSound() {
@@ -181,16 +96,30 @@ function showSound() {
   $('sound').setAttribute('aria-pressed', String(soundOn));
   $('sound').setAttribute('aria-label', soundOn ? 'Отключить звук' : 'Включить звук');
 }
+function stop(message) {
+  if (running) {
+    running = false;
+    lastFrame = 0;
+    cancelAnimationFrame(frameId);
+  }
+  save();
+  if (message) tell(message);
+  syncControls();
+}
 function showDialog(title, body) {
+  stop();
   $('dialog-title').textContent = title;
   $('dialog-body').innerHTML = body;
   if (!$('dialog').open) $('dialog').showModal();
 }
 function guide() {
   showDialog(
-    'Как захватить холодильник',
-    '<p>Начните с деления или откройте вкладку «Эволюция» и вложите первые 8 энергии в едоков или светляков.</p><h3>Дверца задаёт ритм</h3><p>Три хода горит лампа, следующие три хода темно. Свет даёт энергию. В бульоне накапливается зелёный пигмент — хлорофилл. Есть можно всегда, но в супе всего восемь порций.</p><h3>Берегитесь человека</h3><p>Зелень, муть и занятая территория добавляют очки видимости. При свете человек их замечает. Глаз рядом с действием показывает точное изменение шкалы. На 100% суп отправится в унитаз. Ночью подозрение спадает.</p><h3>Освойте полку</h3><p>Делитесь, развивайте обе ветки и сверяйтесь с картой. Два равных уровня веток дают больше колоний за деление. На 60 колониях и втором уровне обеих веток холодильник ваш.</p><p>Каждое действие или покупка занимает один ход. Время на выбор не ограничено. Партия сохраняется после хода.</p>',
+    'Как играть',
+    '<p>Колония живёт в реальном времени: один игровой день длится 24 секунды — 10 секунд света и 14 секунд темноты.</p><h3>Выберите стратегию</h3><p>Авто собирает свет днём и ест ночью. Режимы еды и света повторяют выбранное действие, а покой осветляет бульон и снижает обнаружение; рост в покое остановлен.</p><h3>Растите и эволюционируйте</h3><p>Колония добывает ресурсы, делится и получает очки эволюции сама. Откройте карточку таланта, чтобы прочитать эффект и условия. Банка открывается при 24 колониях и приносит 32 органики. Гетеротрофы развивают питание органикой, фототрофы — сбор света. Общие признаки меняют рост популяции. При 100% обнаружения суп смоют.</p><p>Партия сохраняется автоматически. Скорость и паузу можно менять в любой момент.</p>',
   );
+}
+function requirement(st) {
+  return st.pop + ' колоний · + ' + rules.foodReward(state, st) + ' органики · ' + st.source;
 }
 function map() {
   showDialog(
@@ -199,7 +128,7 @@ function map() {
       .map(
         (s, i) =>
           '<div class="maprow"><i>' +
-          icon(stageIcons[i]) +
+          icon(stageIcons[i % stageIcons.length]) +
           '</i><div><strong>' +
           s.name +
           (i === state.stage ? ' · здесь вы' : '') +
@@ -213,15 +142,15 @@ function map() {
 function ending() {
   const won = state.status === 'won';
   showDialog(
-    won ? 'Холодильник ваш!' : 'Большой смыв',
+    won ? 'Холодильник ваш!' : 'Колония обнаружена',
     '<span class="end-art">' +
       icon(won ? 'flag' : 'flush') +
       '</span><p>' +
       (won
-        ? 'На банке работает порт, у сыра горят фонари. Человек тянется за молоком, видит город на полке и отступает. О выбрасывании супа больше никто не заговаривает.'
-        : 'Хозяин заглянул в кастрюлю и заметил колонию. Суп отправился в унитаз. В следующей партии проверьте прогноз у глаза и попробуйте спрятаться до осмотра.') +
+        ? 'Колония освоила холодильник. Человек отступил, а город на полке продолжает расти.'
+        : 'Хозяин заметил колонию и вылил суп. В следующей партии попробуйте покой и эволюцию.') +
       '</p><p><b>' +
-      count(state.turn, ['ход', 'хода', 'ходов']) +
+      count(Math.floor(state.seconds), ['секунда', 'секунды', 'секунд']) +
       ' · ' +
       count(state.pop, ['колония', 'колонии', 'колоний']) +
       ' · ' +
@@ -232,258 +161,329 @@ function ending() {
 }
 function newGame() {
   state = rules.initial();
+  running = false;
+  elapsed = 0;
+  lastFrame = 0;
   tab = 'moves';
   save();
   $('dialog').close();
-  render();
+  render(true);
   paint(null);
-  tell(stories[0]);
+  tell('Новая колония готова. Нажмите «Начать», когда будете готовы.');
 }
 function restart() {
-  if (state.status !== 'playing') {
-    ending();
-    return;
-  }
   showDialog(
     'Начать новую партию?',
-    '<p>Текущая колония будет заменена четырьмя новыми жителями кастрюли.</p><button class="primary" id="new-game">Начать сначала</button>',
+    '<p>Текущая колония будет заменена новой.</p><button class="primary" id="new-game">Начать сначала</button>',
   );
   $('new-game').onclick = newGame;
 }
-function moveHint(id) {
-  const y = rules.yields(state);
-  if (id === 'eat')
-    return '−3 органики · +' + y.eatEnergy + ' энергии' + (y.eatPop ? ' · +2 колонии' : '');
-  if (id === 'photo')
-    return (
-      '+' +
-      y.photoEnergy +
-      ' энергии · +' +
-      y.photoPigment +
-      ' пигмента' +
-      (y.photoPop ? ' · +2 колонии' : '')
-    );
-  if (id === 'divide')
-    return (
-      '−8 энергии · +' +
-      count(4 + Math.min(state.eaters, state.lights), ['колония', 'колонии', 'колоний'])
-    );
-  return 'Осветлить бульон и осадить муть';
+function activeTraits() {
+  return rules.traits.filter((t) => !branchFilter || t.branch === branchFilter);
 }
 function paintMoves() {
-  $('commands').innerHTML = Object.entries(moves)
-    .map(([id, [pic, label]]) => {
-      const preview = rules.step(state, id),
-        delta = preview.state.suspicion - state.suspicion;
-      const text = preview.reason || moveHint(id);
-      return (
-        '<button class="move" data-action="' +
-        id +
-        '" ' +
-        (preview.reason ? 'disabled' : '') +
-        '><i class="pict">' +
-        icon(pic) +
-        '</i><span class="move-copy"><strong>' +
-        label +
-        '</strong><small>' +
-        text +
-        '</small></span>' +
-        (!preview.reason
-          ? '<span class="forecast" title="Изменение обнаружения" aria-label="Изменение обнаружения ' +
-            signed(delta) +
-            '">' +
-            icon('eye') +
-            signed(delta) +
-            '</span>'
-          : '') +
-        '</button>'
-      );
-    })
-    .join('');
+  $('commands').innerHTML =
+    '<div class="mode-list">' +
+    Object.entries(modeInfo)
+      .map(
+        ([id, m]) =>
+          '<button class="move mode" data-mode="' +
+          id +
+          '"><i class="pict">' +
+          icon(m[0]) +
+          '</i><span class="move-copy"><strong>' +
+          m[1] +
+          '</strong><small>' +
+          m[2] +
+          '</small></span></button>',
+      )
+      .join('') +
+    '</div>';
+  syncModes();
 }
-function listedCost(id) {
-  const cost = rules.techCost(state, id);
-  if (cost !== undefined) return cost;
-  if (id === 'pact') return 9;
-  if (id === 'banquet' || id === 'festival') return 19;
-  if (id === 'eaters' || id === 'lights') return 8;
-  return 13;
-}
-function nodeButton(id) {
-  const known = owned(id),
-    available = !rules.step(state, id).reason;
+function traitButton(t) {
+  const learned = state.traits.includes(t.id),
+    unavailable = !!rules.reason(state, t.id);
   return (
     '<button class="tech-node ' +
-    (known ? 'known' : available ? 'buyable' : 'locked') +
-    '" data-tech="' +
-    id +
+    (learned ? 'known' : unavailable ? 'locked' : 'buyable') +
+    '" data-trait="' +
+    t.id +
+    '" aria-label="' +
+    t.name +
+    ', ' +
+    (learned ? 'изучено' : t.cost + ' очков эволюции') +
     '"><i>' +
-    icon(techs[id][0]) +
+    icon(t.icon) +
     '</i><span>' +
-    techs[id][1] +
+    t.name +
     '</span><small>' +
-    (known ? 'Изучено' : (available ? '' : 'Закр. · ') + listedCost(id) + ' эн.') +
+    (learned ? 'Изучено' : (unavailable ? 'Закр. · ' : '') + t.cost + ' очк.') +
     '</small></button>'
   );
 }
-function branch(title, ids, level) {
-  return (
-    '<div class="branch"><b>' +
-    title +
-    ' <small>' +
-    level +
-    '/3</small></b>' +
-    nodeButton(ids[0]) +
-    '<div class="fork">' +
-    nodeButton(ids[1]) +
-    nodeButton(ids[2]) +
-    '</div>' +
-    nodeButton(ids[3]) +
-    '</div>'
-  );
-}
 function paintTree() {
+  const branches = [...new Set(rules.traits.map((t) => t.branch))];
+  if (!branches.includes(branchFilter)) branchFilter = branches[0];
+  const nodes = activeTraits(),
+    tiers = [...new Set(nodes.map((t) => t.tier))].sort((a, b) => a - b);
+  const firstAvailable = nodes
+    .filter((t) => !rules.reason(state, t.id))
+    .sort((a, b) => a.tier - b.tier)[0];
+  const openTier = firstAvailable?.tier || 1;
+  const tabs = branches
+    .map(
+      (b) =>
+        '<button class="branch-tab" data-branch="' +
+        b +
+        '" aria-pressed="' +
+        (b === branchFilter) +
+        '">' +
+        b +
+        '</button>',
+    )
+    .join('');
+  const rows = tiers
+    .map((tier) => {
+      const level = nodes.filter((t) => t.tier === tier);
+      const ready = level.filter((t) => !rules.reason(state, t.id)).length;
+      const learned = level.filter((t) => state.traits.includes(t.id)).length;
+      const summary = ready
+        ? 'Доступно ' + ready
+        : learned
+          ? 'Изучено ' + learned + ' из ' + level.length
+          : count(level.length, ['признак', 'признака', 'признаков']);
+      return (
+        '<details class="tier" ' +
+        (tier === openTier ? 'open' : '') +
+        '><summary>Ярус ' +
+        tier +
+        '<small>' +
+        summary +
+        '</small></summary>' +
+        level.map(traitButton).join('') +
+        '</details>'
+      );
+    })
+    .join('');
   $('commands').innerHTML =
-    '<div class="tree">' +
-    branch('Едоки', ['eaters', 'feast', 'quiet', 'banquet'], state.eaters) +
-    branch('Светляки', ['lights', 'flare', 'shade', 'festival'], state.lights) +
-    '</div><div class="joint">' +
-    nodeButton('pact') +
-    '</div><p class="evo-info">Нажмите на талант, чтобы узнать эффект и условия.</p>';
+    '<div class="branch-tabs" role="group" aria-label="Ветки эволюции">' +
+    tabs +
+    '</div><div class="tree">' +
+    rows +
+    '</div>';
 }
-function techDetail(id) {
-  const [pic, name, kind, description, requires] = techs[id],
-    preview = rules.step(state, id);
-  const swap =
-    (['quiet', 'feast'].includes(id) && state.eatStyle && state.eatStyle !== id) ||
-    (['shade', 'flare'].includes(id) && state.lightStyle && state.lightStyle !== id);
-  const consequence = swap
-    ? '<p>Новая специализация заменит прежнюю. Уровень ветки сохранится.</p>'
-    : '';
+function traitDetail(id) {
+  const t = rules.traits.find((item) => item.id === id);
+  if (!t) return;
+  const blocked = rules.reason(state, id),
+    learned = state.traits.includes(id);
   showDialog(
-    name,
+    t.name,
     '<div class="detail-kind"><i>' +
-      icon(pic) +
+      icon(t.icon) +
       '</i>' +
-      kind +
+      t.branch +
+      ' · ступень ' +
+      t.tier +
       '</div><p>' +
-      description +
-      '</p><p>' +
-      requires +
+      t.definition +
+      '</p><p><b>Эффект:</b> ' +
+      t.effect +
+      '</p><p><b>Зависимости:</b> ' +
+      (t.parents.length
+        ? t.parents.map((pid) => rules.traits.find((p) => p.id === pid)?.name || pid).join(', ')
+        : 'нет') +
       '</p>' +
-      consequence +
-      (owned(id)
+      (learned
         ? '<p><b>Талант изучен.</b></p>'
-        : preview.reason
-          ? '<p><b>' + listedCost(id) + ' энергии.</b> ' + preview.reason + '</p>'
-          : '<p>Обнаружение после хода: ' +
-            preview.state.suspicion +
-            '% (' +
-            signed(preview.state.suspicion - state.suspicion) +
-            ').</p><button class="primary" id="purchase">' +
-            (swap ? 'Сменить за ' : 'Изучить за ') +
-            listedCost(id) +
-            ' энергии</button>'),
+        : blocked
+          ? '<p><b>' + t.cost + ' очков эволюции.</b> ' + blocked + '</p>'
+          : '<p><b>Цена: ' +
+            t.cost +
+            ' очков эволюции.</b></p><button class="primary" id="purchase">Изучить</button>'),
   );
   if ($('purchase'))
     $('purchase').onclick = () => {
+      const learnedResult = rules.learn(state, id);
+      if (learnedResult.reason) {
+        tell(learnedResult.reason);
+        $('dialog').close();
+        return;
+      }
+      state = learnedResult.state;
+      save();
       $('dialog').close();
-      act(id);
+      render(true);
+      tell('Изучено: «' + t.name + '».');
+      tone('photo');
     };
 }
-function act(id) {
-  const before = state,
-    result = rules.step(state, id);
-  if (result.reason) {
-    tell(result.reason);
-    return;
-  }
-  state = result.state;
-  save();
-  render();
-  const diffEnergy = state.energy - before.energy,
-    diffPop = state.pop - before.pop,
-    change = state.suspicion - before.suspicion;
-  const summary = techs[id] ? 'Изучено: «' + techs[id][1] + '»' : moves[id][1];
-  const delta = [
-    diffEnergy ? signed(diffEnergy) + ' энергии' : '',
-    diffPop ? signed(diffPop) + ' кол.' : '',
-    change ? 'обнаружение ' + signed(change) + '%' : '',
-  ]
-    .filter(Boolean)
-    .join(' · ');
-  paint(diffPop ? '+' + diffPop + ' кол.' : diffEnergy ? signed(diffEnergy) + ' эн.' : 'Тише…');
-  tell(
-    summary +
-      (delta ? ' · ' + delta : '') +
-      '. ' +
-      (state.stage > before.stage ? stories[state.stage] : ''),
-  );
-  tone(state.status !== 'playing' ? state.status : state.stage > before.stage ? 'stage' : id);
-  if (state.status !== 'playing') ending();
+function syncModes() {
+  $('commands')
+    .querySelectorAll('[data-mode]')
+    .forEach((b) => {
+      const id = b.dataset.mode;
+      b.classList.toggle('selected', state.mode === id);
+      b.setAttribute('aria-pressed', String(state.mode === id));
+    });
 }
-function render() {
-  const over = state.status !== 'playing',
-    p = rules.phase(over ? { ...state, turn: Math.max(0, state.turn - 1) } : state),
+function syncControls() {
+  const button = $('run-toggle');
+  if (button) {
+    button.textContent = running ? 'Пауза' : state.seconds ? 'Продолжить' : 'Начать';
+    button.setAttribute('aria-pressed', String(running));
+    button.disabled = state.status !== 'playing';
+  }
+  document.querySelectorAll('[data-speed]').forEach((b) => {
+    b.setAttribute('aria-pressed', String(Number(b.dataset.speed) === speed));
+  });
+}
+function phaseText(p) {
+  return (
+    (p.light ? 'Свет' : 'Темнота') + ' · ' + count(Math.ceil(p.left), ['секунда', 'секунды', 'секунд'])
+  );
+}
+function eventInfo(event) {
+  return (
+    (rules.events || []).find((item) => item.id === event.id) || {
+      name: 'Неизвестное событие',
+      effect: '',
+    }
+  );
+}
+function eventKey(event) {
+  return event ? event.id + ':' + event.start : null;
+}
+function syncEvent() {
+  const event = state.event,
+    banner = $('event-banner'),
+    key = eventKey(event);
+  banner.hidden = !event;
+  banner.classList.toggle('is-active', !!event);
+  if (event) {
+    const info = eventInfo(event);
+    if (key !== renderedEvent)
+      $('event-mark').innerHTML = icon(
+        { stir: 'pot', crumbs: 'carrot', lamp: 'bulb', fog: 'eye', frost: 'moon', warm: 'sun' }[
+          event.id
+        ],
+      );
+    $('event-name').textContent = info.name;
+    $('event-detail').textContent = info.effect;
+    $('event-timer').textContent = count(Math.max(0, event.until - state.seconds), [
+      'секунда',
+      'секунды',
+      'секунд',
+    ]);
+  } else {
+    $('event-name').textContent = 'Случайное событие';
+    $('event-detail').textContent = 'Сейчас в колонии тихо';
+    $('event-timer').textContent = '';
+  }
+  if (key && key !== renderedEvent) {
+    banner.classList.remove('event-start');
+    void banner.offsetWidth;
+    banner.classList.add('event-start');
+  }
+  renderedEvent = key;
+}
+function eventNotices(before, after) {
+  const oldKey = eventKey(before),
+    newKey = eventKey(after),
+    notices = [];
+  if (oldKey && oldKey !== newKey) {
+    const info = eventInfo(before);
+    const message = 'Событие завершилось: ' + info.name + '.';
+    notices.push(message);
+  }
+  if (newKey && oldKey !== newKey) {
+    const info = eventInfo(after);
+    const message = 'В холодильнике: ' + info.name + '. ' + info.effect;
+    notices.push(message);
+  }
+  return notices;
+}
+function render(rebuild = false) {
+  const p = rules.phase(state),
     st = rules.stages[state.stage],
-    next = rules.stages[state.stage + 1];
-  $('chapter').textContent = 'Территория ' + String(state.stage + 1).padStart(2, '0') + ' / 05';
-  $('scene-title').textContent = titles[state.stage];
+    next = rules.stages[state.stage + 1],
+    over = state.status !== 'playing';
+  $('chapter').textContent =
+    'Территория ' +
+    String(state.stage + 1).padStart(2, '0') +
+    ' / ' +
+    String(rules.stages.length).padStart(2, '0');
+  $('scene-title').textContent = st.name;
   $('day').textContent = 'День ' + String(p.day).padStart(2, '0');
-  $('scene').classList.toggle('night', !p.light && state.status !== 'won');
-  $('phase-chip').innerHTML =
-    '<i>' + icon(p.light ? 'sun' : 'moon') + '</i>' + (p.light ? 'Дверца открыта' : 'Дверца закрыта');
-  $('territory-caption').textContent =
-    state.status === 'won'
+  $('scene').classList.toggle('night', !p.light && !over);
+  $('phase-chip').innerHTML = '<i>' + icon(p.light ? 'sun' : 'moon') + '</i>' + phaseText(p);
+  syncEvent();
+  $('territory-caption').textContent = over
+    ? state.status === 'won'
       ? 'Цивилизация на полке'
-      : state.status === 'lost'
-        ? 'Колония обнаружена'
-        : 'Заселено · ' + st.name;
+      : 'Колония обнаружена'
+    : 'Заселено · ' + st.name;
   $('watch-label').textContent = over
     ? state.status === 'won'
       ? 'Люди отступили'
       : 'Суп смыт'
-    : p.light
-      ? p.inspection + ' осмотр'
-      : 'Холодильник спит';
+    : running
+      ? p.light
+        ? p.inspection + ' осмотр'
+        : 'Холодильник спит'
+      : 'Партия на паузе';
   $('watch-note').textContent = over
     ? state.status === 'won'
-      ? stories[4]
-      : 'Хозяин вылил остатки супа в унитаз.'
-    : (p.light ? 'До темноты — ' : 'До включения лампы — ') +
-      count(p.left, ['ход', 'хода', 'ходов']) +
-      '. ' +
-      (p.light ? 'Вас могут заметить.' : 'Вас никто не видит.');
+      ? 'Холодильник теперь ваш.'
+      : 'Хозяин заметил колонию.'
+    : (running
+        ? 'Режим «' + modeInfo[state.mode][1].toLowerCase() + '». '
+        : 'Нажмите «' + (state.seconds ? 'Продолжить' : 'Начать') + '». ') +
+      (p.light ? 'До темноты — ' : 'До света — ') +
+      Math.ceil(p.left) +
+      ' с.';
   $('phase-dots').innerHTML = over
     ? ''
-    : [1, 2, 3].map((i) => '<i class="' + (i <= p.left ? 'on' : '') + '"></i>').join('');
+    : Array.from(
+        { length: 5 },
+        (_, i) =>
+          '<i class="' + (i < Math.ceil((5 * p.left) / (p.light ? 10 : 14)) ? 'on' : '') + '"></i>',
+      ).join('');
   $('pop').innerHTML =
     '<i>' + icon('divide') + '</i>' + count(state.pop, ['колония', 'колонии', 'колоний']);
-  $('energy').textContent = state.energy;
-  $('food').textContent = state.food;
-  $('risk').textContent = state.suspicion + '%';
+  $('energy').textContent = Math.floor(state.energy);
+  $('food').textContent = Math.floor(state.food);
+  $('risk').textContent = Math.floor(state.suspicion) + '%';
   $('risk-fill').style.width = state.suspicion + '%';
-  $('risk-track').setAttribute('aria-valuenow', state.suspicion);
+  $('risk-track').setAttribute('aria-valuenow', Math.floor(state.suspicion));
   $('risk').classList.toggle('warning', state.suspicion >= 70);
-  const seen = Math.floor(state.pigment / 7) + Math.floor(state.cloud / 6) + state.stage;
-  $('visibility').textContent =
-    'Видимость ' + seen + ' · Хлорофилл ' + state.pigment + ' · Муть ' + state.cloud;
-  $('stage-num').textContent = state.stage + 1 + ' из 5';
-  $('route-line').innerHTML = shortNames
+  $('visibility').textContent = 'Хлорофилл ' + state.pigment + ' · Муть ' + state.cloud;
+  $('dna').textContent = state.dna;
+  $('stage-num').textContent = state.stage + 1 + ' из ' + rules.stages.length;
+  $('route-line').innerHTML = rules.stages
     .map(
-      (name, i) =>
+      (s, i) =>
         '<span class="stop ' +
         (i <= state.stage ? 'reached ' : '') +
         (i === state.stage ? 'active' : '') +
         '"><i>' +
-        icon(stageIcons[i]) +
+        icon(stageIcons[i % stageIcons.length]) +
         '</i>' +
-        name +
+        s.name +
         '</span>',
     )
     .join('');
   $('next').textContent = next
-    ? 'Дальше — ' + next.name.toLowerCase() + ' · ' + requirement(next)
+    ? 'Дальше — ' +
+      next.name.toLowerCase() +
+      ' · ещё ' +
+      Math.max(0, next.pop - state.pop) +
+      ' кол. до ' +
+      next.pop +
+      ' · награда: ' +
+      rules.foodReward(state, next) +
+      ' органики'
     : 'Все территории заселены';
   for (const t of ['moves', 'evo']) {
     $('tab-' + t).setAttribute('aria-selected', String(tab === t));
@@ -498,26 +498,90 @@ function render() {
       (state.status === 'won' ? 'Город проснулся' : 'Колония обнаружена') +
       '</h3><button class="primary" id="result">Итоги партии</button></div>';
     $('result').onclick = ending;
-  } else if (tab === 'moves') paintMoves();
-  else paintTree();
+  } else if (rebuild || !$('commands').querySelector(tab === 'moves' ? '[data-mode]' : '[data-trait]'))
+    tab === 'moves' ? paintMoves() : paintTree();
+  else if (tab === 'moves') syncModes();
+  syncControls();
+}
+function tick() {
+  if (!running || document.hidden || $('dialog').open || tab === 'evo' || state.status !== 'playing')
+    return;
+  const before = state,
+    oldStage = state.stage;
+  state = rules.tick(state);
+  const now = performance.now();
+  const notices = eventNotices(before.event, state.event),
+    messages = [];
+  if (state.stage > oldStage) {
+    save();
+    messages.push(
+      'Заселена территория «' +
+        rules.stages[state.stage].name +
+        '». Открыт запас: ' +
+        rules.stages[state.stage].source +
+        ' (+' +
+        rules.foodReward(state, rules.stages[state.stage]) +
+        ' органики).',
+    );
+    tone('stage');
+  }
+
+  messages.push(...notices);
+
+  if (messages.length) tell(messages.join(' '));
+  if (state.status !== 'playing') {
+    running = false;
+    save();
+    render();
+    tone(state.status);
+    ending();
+    return;
+  }
+  if (now - lastSave > 5000) {
+    save();
+    lastSave = now;
+  }
+  render();
+}
+function frame(now) {
+  if (!running || document.hidden || $('dialog').open || tab === 'evo') {
+    lastFrame = 0;
+    return;
+  }
+  frameId = requestAnimationFrame(frame);
+  if (!lastFrame) lastFrame = now;
+  elapsed += (Math.min(1000, Math.max(0, now - lastFrame)) * speed) / 1000;
+  lastFrame = now;
+  while (elapsed >= 1 && running) {
+    elapsed -= 1;
+    tick();
+  }
+  paint();
 }
 document.querySelectorAll('[data-icon]').forEach((el) => (el.innerHTML = icon(el.dataset.icon)));
 $('commands').onclick = (e) => {
   const b = e.target.closest('button');
   if (!b) return;
-  if (b.dataset.tech) {
-    techDetail(b.dataset.tech);
-    return;
+  if (b.dataset.trait) {
+    stop();
+    traitDetail(b.dataset.trait);
   }
-  if (b.dataset.action) {
-    act(b.dataset.action);
-    const again = document.querySelector('[data-action="' + b.dataset.action + '"]:not(:disabled)');
-    if (again && !$('dialog').open) again.focus({ preventScroll: true });
+  if (b.dataset.mode) {
+    state = rules.choose(state, b.dataset.mode);
+    save();
+    render();
+    tell('Режим: ' + modeInfo[b.dataset.mode][1] + '.');
+  }
+  if (b.dataset.branch) {
+    branchFilter = b.dataset.branch;
+    render(true);
   }
 };
 function setTab(t) {
   tab = t;
-  render();
+  if (t === 'evo')
+    stop('Эволюция на паузе. Вернуться к симуляции можно кнопкой над шкалой обнаружения.');
+  render(true);
   $('tab-' + t).focus({ preventScroll: true });
 }
 for (const t of ['moves', 'evo']) {
@@ -529,10 +593,41 @@ for (const t of ['moves', 'evo']) {
     }
   };
 }
+$('run-toggle').onclick = () => {
+  if (state.status !== 'playing') return;
+  if (running) {
+    stop('Партия на паузе.');
+    render();
+    return;
+  }
+  if (tab === 'evo') setTab('moves');
+  running = true;
+  lastFrame = 0;
+  frameId = requestAnimationFrame(frame);
+  render();
+  tell('Колония живёт в режиме «' + modeInfo[state.mode][1] + '».');
+};
+document.querySelectorAll('[data-speed]').forEach(
+  (b) =>
+    (b.onclick = () => {
+      speed = Number(b.dataset.speed);
+      save();
+      try {
+        localStorage.setItem('soupostat.speed', String(speed));
+      } catch {
+        saveWarning = 'Не удалось сохранить настройку скорости.';
+        tell('');
+      }
+      syncControls();
+    }),
+);
 $('guide').onclick = guide;
 $('map-top').onclick = map;
 $('restart').onclick = restart;
 $('close').onclick = () => $('dialog').close();
+$('dialog').addEventListener('close', () => {
+  save();
+});
 $('sound').onclick = () => {
   soundOn = !soundOn;
   try {
@@ -541,12 +636,31 @@ $('sound').onclick = () => {
   showSound();
   tone('photo');
 };
-const paint = startScene($('life'), () => state);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden)
+    stop('Автопауза: вкладка была скрыта. Нажмите «Продолжить», чтобы вернуться к игре.');
+});
+const paint = startScene(
+  $('life'),
+  () => state,
+  () => state.seconds + elapsed,
+);
+try {
+  const savedSpeed = Number(localStorage.getItem('soupostat.speed'));
+  if ([1, 2, 4].includes(savedSpeed)) speed = savedSpeed;
+} catch {}
 showSound();
-render();
+render(true);
+paint(null);
+syncControls();
 if (state.status !== 'playing') ending();
-if (saveWarning || state.turn)
-  tell(state.turn ? 'Партия восстановлена. ' + stories[state.stage] : stories[0]);
+else
+  tell(
+    state.seconds
+      ? 'Партия восстановлена. Ваша территория — ' + rules.stages[state.stage].name.toLowerCase() + '.'
+      : 'Дверца открыта. Нажмите «Начать», чтобы колония ожила.',
+  );
+window.addEventListener('pagehide', () => stop());
 if (
   ['http:', 'https:'].includes(location.protocol) &&
   window.isSecureContext &&
